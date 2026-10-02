@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n-zh="纽斯 · 新闻知识库 — 让你的 Agent 会看新闻" data-i18n-en="Nius · News Knowledge Base — Give your agent the news">纽斯 · 新闻知识库 — 让你的 Agent 会看新闻</title>
+  <meta name="description" data-i18n-zh="纽斯是装进智能体里的新闻知识库：散落的新闻被整理成「事实 / 观点 / 计划」三类事件，叫法自动归组、条条有出处。一句话安装，之后直接问「XX 最近有什么动态」。" data-i18n-en="Nius is a news knowledge base that lives in your agent: scattered news distilled into facts, opinions, and plans — entities merged, every item sourced. One sentence to install, then just ask.">
+  <link rel="icon" type="image/png" href="../../assets/img/news.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    /* ===== 纽斯页局部：Agent 对话演示 ===== */
+    .ns-panel {
+      position: absolute;
+      top: 56px; left: 50%;
+      transform: translateX(-50%);
+      width: min(440px, 86%);
+      background: rgba(19, 23, 42, 0.92);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      border-radius: 16px;
+      padding: 16px 20px 14px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(6px);
+    }
+    .ns-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; }
+    .ns-bar i { width: 10px; height: 10px; border-radius: 50%; background: rgba(255, 255, 255, 0.13); }
+    .ns-bar i:first-child { background: color-mix(in srgb, var(--accent) 75%, transparent); }
+    .ns-bar span { margin-left: 8px; font-size: 12px; color: rgba(255, 255, 255, 0.42); letter-spacing: 0.05em; }
+    .ns-user {
+      margin-left: auto;
+      width: max-content;
+      max-width: 88%;
+      background: var(--accent);
+      color: var(--btn-text);
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 14px 14px 4px 14px;
+      margin-bottom: 14px;
+    }
+    .ns-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 0;
+      border-top: 1px dashed rgba(255, 255, 255, 0.09);
+    }
+    .ns-chip {
+      flex-shrink: 0;
+      margin-top: 1px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 999px;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 16%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+      letter-spacing: 0.04em;
+    }
+    .ns-row p { font-size: 13px; color: rgba(255, 255, 255, 0.88); line-height: 1.5; }
+    .ns-row small { display: block; margin-top: 2px; font-size: 11px; color: rgba(255, 255, 255, 0.38); }
+    .ns-float {
+      position: absolute;
+      right: -6px; bottom: 34px;
+      background: color-mix(in srgb, var(--accent) 16%, rgba(19, 23, 42, 0.95));
+      border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 12.5px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+      animation: ns-drift 5.2s ease-in-out infinite;
+    }
+    @keyframes ns-drift {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-9px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ns-float { animation: none; }
+    }
+    @media (max-width: 560px) {
+      .ns-float { display: none; }
+      .ns-panel { width: 94%; padding: 14px 16px 12px; }
+    }
+    /* ===== 安装口令代码块 ===== */
+    .ns-say code { color: color-mix(in srgb, var(--accent) 72%, #fff 28%); }
+  </style>
+</head>
+<body style="--accent: #0673f8; --btn-text: #ffffff;">
+
+  <header class="site-header">
+    <div class="container nav">
+      <a class="back-link" href="../../">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        <span data-i18n-zh="全部工具" data-i18n-en="All tools">全部工具</span>
+      </a>
+      <div class="nav-right">
+        <a class="btn btn-primary btn-sm" href="https://news.yao-yang.cn/" target="_blank" rel="noopener">
+          <span data-i18n-zh="打开新闻知识库" data-i18n-en="Open the site">打开新闻知识库</span>
+        </a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <div class="container hero-inner">
+
+        <div class="hero-copy">
+          <div class="hero-app">
+            <img src="../../assets/img/news.png" alt="纽斯">
+            <div>
+              <div class="hero-app-name" data-i18n-zh="纽斯 · 新闻知识库" data-i18n-en="Nius · News Knowledge Base">纽斯 · 新闻知识库</div>
+              <div class="hero-app-cat" data-i18n-zh="Agent Skill · 装进你的智能体" data-i18n-en="Agent skill · lives inside your agent">Agent Skill · 装进你的智能体</div>
+            </div>
+          </div>
+          <h1 class="hero-title"
+              data-i18n-zh="你的 Agent，<br><em>终于会看新闻了。</em>"
+              data-i18n-en="Your agent finally<br><em>knows the news.</em>">你的 Agent，<br><em>终于会看新闻了。</em></h1>
+          <p class="hero-sub"
+             data-i18n-zh="纽斯是一个给 Agent 用的新闻知识库：散落的新闻被提前整理成「事实 / 观点 / 计划」三类事件，做成 skill 装进你的智能体。之后你只管问——「特斯拉最近有什么动态？」答案分类清晰、条条带出处。"
+             data-i18n-en="Nius is a news knowledge base for AI agents: scattered news is distilled into facts, opinions, and plans, then served to your agent as a skill. Just ask — &ldquo;what&rsquo;s new with Tesla?&rdquo; — and get a clear, sourced answer.">纽斯是一个给 Agent 用的新闻知识库：散落的新闻被提前整理成「事实 / 观点 / 计划」三类事件，做成 skill 装进你的智能体。之后你只管问——「特斯拉最近有什么动态？」答案分类清晰、条条带出处。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://news.yao-yang.cn/" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l2.4 5.4 5.6.6-4.2 3.9 1.2 5.6L12 14.8 7 17.5l1.2-5.6L4 8l5.6-.6z"/></svg>
+              <span data-i18n-zh="安装到你的 Agent" data-i18n-en="Install on your agent">安装到你的 Agent</span>
+            </a>
+          </div>
+          <div class="facts">
+            <span class="fact" data-i18n-zh="一句话安装" data-i18n-en="One-sentence install">一句话安装</span>
+            <span class="fact" data-i18n-zh="事实 · 观点 · 计划" data-i18n-en="Facts · opinions · plans">事实 · 观点 · 计划</span>
+            <span class="fact" data-i18n-zh="条条有出处" data-i18n-en="Every item sourced">条条有出处</span>
+            <span class="fact" data-i18n-zh="叫法自动归组" data-i18n-en="Entities auto-merged">叫法自动归组</span>
+          </div>
+        </div>
+
+        <!-- Agent 对话演示（纯装饰） -->
+        <div class="mock" aria-hidden="true">
+          <div class="ns-panel">
+            <div class="ns-bar"><i></i><i></i><i></i><span>AGENT · NIUS INSTALLED</span></div>
+            <div class="ns-user" data-i18n-zh="特斯拉最近有什么动态？" data-i18n-en="What&rsquo;s new with Tesla?">特斯拉最近有什么动态？</div>
+            <div class="ns-row">
+              <span class="ns-chip" data-i18n-zh="事实" data-i18n-en="FACT">事实</span>
+              <p>
+                <span data-i18n-zh="特斯拉 2026Q2 发布 Cybertruck v2" data-i18n-en="Tesla shipped Cybertruck v2 in 2026 Q2">特斯拉 2026Q2 发布 Cybertruck v2</span>
+                <small data-i18n-zh="据 05-15 报道 · 来源可点开核对" data-i18n-en="reported 05-15 · source included">据 05-15 报道 · 来源可点开核对</small>
+              </p>
+            </div>
+            <div class="ns-row">
+              <span class="ns-chip" data-i18n-zh="观点" data-i18n-en="OPINION">观点</span>
+              <p>
+                <span data-i18n-zh="分析师看好其能源业务增长" data-i18n-en="Analysts are bullish on its energy business">分析师看好其能源业务增长</span>
+                <small data-i18n-zh="据 05-10 报道" data-i18n-en="reported 05-10">据 05-10 报道</small>
+              </p>
+            </div>
+            <div class="ns-row">
+              <span class="ns-chip" data-i18n-zh="计划" data-i18n-en="PLAN">计划</span>
+              <p>
+                <span data-i18n-zh="计划 2026 年 9 月发布新车型" data-i18n-en="Plans to unveil a new model in September 2026">计划 2026 年 9 月发布新车型</span>
+                <small data-i18n-zh="据 06-10 报道 · 还能订阅进日历" data-i18n-en="reported 06-10 · subscribable as a calendar">据 06-10 报道 · 还能订阅进日历</small>
+              </p>
+            </div>
+          </div>
+          <span class="ns-float" data-i18n-zh="🔗 「特斯拉」的 3 种叫法，已并成一组" data-i18n-en="🔗 3 name variants, merged into one entity">🔗 「特斯拉」的 3 种叫法，已并成一组</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 为什么 ============ -->
+    <section class="section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="为什么" data-i18n-en="Why">为什么</span>
+          <h2 class="section-title"
+              data-i18n-zh="问 Agent 一个新闻问题，<br>它端回来一堆链接。"
+              data-i18n-en="Ask your agent about the news,<br>and it hands you a pile of links.">问 Agent 一个新闻问题，<br>它端回来一堆链接。</h2>
+          <p class="section-sub"
+             data-i18n-zh="让 Agent 自己上网搜新闻，听起来聪明，用起来闹心。"
+             data-i18n-en="Letting your agent search the web for news sounds smart — until you try it.">让 Agent 自己上网搜新闻，听起来聪明，用起来闹心。</p>
+        </div>
+        <div class="pain-grid">
+          <div class="pain-card">
+            <h3 data-i18n-zh="搜到的全是碎片" data-i18n-en="Fragments everywhere">搜到的全是碎片</h3>
+            <p data-i18n-zh="标题党、软文、旧闻新炒……Agent 拿到一堆网页，还得自己猜哪条是真的、哪条是新的。"
+               data-i18n-en="Clickbait, press releases, rehashed old stories — your agent gets a pile of web pages and has to guess what&rsquo;s true and what&rsquo;s fresh.">标题党、软文、旧闻新炒……Agent 拿到一堆网页，还得自己猜哪条是真的、哪条是新的。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="一个对象，五种叫法" data-i18n-en="One entity, five names">一个对象，五种叫法</h3>
+            <p data-i18n-zh="「苹果」「Apple」「苹果电脑贸易（上海）有限公司」是同一家公司。漏查一个名字，信息就永远拼不全。"
+               data-i18n-en="&ldquo;Apple&rdquo;, &ldquo;Apple Inc.&rdquo;, the Shanghai trading arm — same company. Miss one variant and the picture never adds up.">「苹果」「Apple」「苹果电脑贸易（上海）有限公司」是同一家公司。漏查一个名字，信息就永远拼不全。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="事实观点一锅炖" data-i18n-en="Facts and opinions, one soup">事实观点一锅炖</h3>
+            <p data-i18n-zh="发生了什么、大家怎么看、接下来会怎样，全混在一起。答案看着热闹，其实没法用。"
+               data-i18n-en="What happened, what people think, what comes next — all blended together. Busy-looking, unusable answers.">发生了什么、大家怎么看、接下来会怎样，全混在一起。答案看着热闹，其实没法用。</p>
+          </div>
+        </div>
+        <p class="pain-transition"
+           data-i18n-zh="纽斯把新闻先理清楚，<br>再<em>喂到 Agent 手里</em>。"
+           data-i18n-en="Nius tidies the news first,<br>then <em>hands it to your agent</em>.">纽斯把新闻先理清楚，<br>再<em>喂到 Agent 手里</em>。</p>
+      </div>
+    </section>
+
+    <!-- ============ 能做什么 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="能做什么" data-i18n-en="What it does">能做什么</span>
+          <h2 class="section-title"
+              data-i18n-zh="新闻不再是网页，<br>而是<em>理好的信息</em>。"
+              data-i18n-en="News stops being web pages,<br>and becomes <em>organized information</em>.">新闻不再是网页，<br>而是<em>理好的信息</em>。</h2>
+          <p class="section-sub"
+             data-i18n-zh="装好 skill 之后，这些能力全部长在你的 Agent 身上。"
+             data-i18n-en="Once the skill is installed, all of this lives inside your agent.">装好 skill 之后，这些能力全部长在你的 Agent 身上。</p>
+        </div>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🗞️</div>
+            <h3 data-i18n-zh="看信息点，不读通篇" data-i18n-en="Points, not full articles">看信息点，不读通篇</h3>
+            <p data-i18n-zh="每件已发生的事实、每条观点、每项后续计划都被单独整理出来——这是纽斯读新闻的方式，也是 Agent 查询的基本单位。"
+               data-i18n-en="Every fact, opinion, and follow-up plan is extracted into its own entry — how Nius reads the news, and the unit your agent queries.">每件已发生的事实、每条观点、每项后续计划都被单独整理出来——这是纽斯读新闻的方式，也是 Agent 查询的基本单位。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🔀</div>
+            <h3 data-i18n-zh="三种事件，分开存放" data-i18n-en="Three event types, kept apart">三种事件，分开存放</h3>
+            <p data-i18n-zh="事实（发生了什么）、观点（大家怎么看）、计划（接下来会怎样）。问观点不会混进计划，问计划不会带出事实。"
+               data-i18n-en="Facts (what happened), opinions (what people think), plans (what&rsquo;s next). Ask for opinions and no plans sneak in.">事实（发生了什么）、观点（大家怎么看）、计划（接下来会怎样）。问观点不会混进计划，问计划不会带出事实。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🔗</div>
+            <h3 data-i18n-zh="各种叫法，自动归组" data-i18n-en="Every name, one group">各种叫法，自动归组</h3>
+            <p data-i18n-zh="同一家公司在不同文章里有五种写法？后台自动并成一组。查一次返回整组信息，还顺手去重。"
+               data-i18n-en="One company, five spellings across articles? They&rsquo;re merged automatically. One query returns the whole group, deduplicated.">同一家公司在不同文章里有五种写法？后台自动并成一组。查一次返回整组信息，还顺手去重。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🕐</div>
+            <h3 data-i18n-zh="两个时间，都说明白" data-i18n-en="Two clocks, kept straight">两个时间，都说明白</h3>
+            <p data-i18n-zh="事情何时发生、报道何时发布，是两回事。纽斯分得开，Agent 就答得清楚，不闹时间乌龙。"
+               data-i18n-en="When it happened and when it was reported are different things. Nius keeps them apart, so your agent never muddles them.">事情何时发生、报道何时发布，是两回事。纽斯分得开，Agent 就答得清楚，不闹时间乌龙。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🧾</div>
+            <h3 data-i18n-zh="条条都有出处" data-i18n-en="Every item cites its source">条条都有出处</h3>
+            <p data-i18n-zh="每条信息都带来源文章的标题和链接。Agent 回答时顺手列给你，想核对原文随时能点。"
+               data-i18n-en="Each entry carries the source article&rsquo;s title and link, surfaced in your agent&rsquo;s answer for easy fact-checking.">每条信息都带来源文章的标题和链接。Agent 回答时顺手列给你，想核对原文随时能点。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🔄</div>
+            <h3 data-i18n-zh="skill 自己会更新" data-i18n-en="The skill updates itself">skill 自己会更新</h3>
+            <p data-i18n-zh="每次使用前自动校验版本；接口升级时，按更新协议把电脑上所有 skill 副本一次更新到位，不用你操心。"
+               data-i18n-en="Version is checked before every use; when the contract changes, every copy on your machine is refreshed in one sweep.">每次使用前自动校验版本；接口升级时，按更新协议把电脑上所有 skill 副本一次更新到位，不用你操心。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 三步上手 ============ -->
+    <section class="section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="上手" data-i18n-en="Get started">上手</span>
+          <h2 class="section-title"
+              data-i18n-zh="三步，让 Agent 学会读新闻。"
+              data-i18n-en="Three steps to a news-reading agent.">三步，让 Agent 学会读新闻。</h2>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <span class="step-num">1</span>
+            <h3 data-i18n-zh="说一句安装口令" data-i18n-en="Say the install line">说一句安装口令</h3>
+            <p class="ns-say" data-i18n-zh="对你的 Agent 说：<code>安装这个 skill https://news.yao-yang.cn/skill</code> 它会自己取回最新版 skill 文本，装好即生效。"
+               data-i18n-en="Tell your agent: <code>install the skill at https://news.yao-yang.cn/skill</code> — it fetches the latest skill text and it&rsquo;s live immediately.">对你的 Agent 说：<code>安装这个 skill https://news.yao-yang.cn/skill</code> 它会自己取回最新版 skill 文本，装好即生效。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <h3 data-i18n-zh="像聊天一样提问" data-i18n-en="Ask like you chat">像聊天一样提问</h3>
+            <p data-i18n-zh="「特斯拉最近有什么动态？」「苹果公司接下来一个月有什么计划？」——想了解谁，就问谁。"
+               data-i18n-en="&ldquo;What&rsquo;s new with Tesla?&rdquo; &ldquo;What does Apple plan for next month?&rdquo; Ask about anyone, anything.">「特斯拉最近有什么动态？」「苹果公司接下来一个月有什么计划？」——想了解谁，就问谁。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <h3 data-i18n-zh="收下整理好的答案" data-i18n-en="Get the tidy answer">收下整理好的答案</h3>
+            <p data-i18n-zh="Agent 向纽斯查询，把事实、观点、计划分好类，连时间带出处一起端给你。"
+               data-i18n-en="Your agent queries Nius and serves up facts, opinions, and plans — sorted, timestamped, and sourced.">Agent 向纽斯查询，把事实、观点、计划分好类，连时间带出处一起端给你。</p>
+          </div>
+        </div>
+        <details class="note">
+          <summary data-i18n-zh="兼容哪些 Agent？" data-i18n-en="Which agents does it work with?">兼容哪些 Agent？</summary>
+          <div class="note-body"
+               data-i18n-zh="Workbuddy、Codex、DeepSeek Harness、OpenClaw 等主流 agent 产品开箱即用；只要你的 agent 能读入一段 skill 文本、会发 HTTP 请求，就能装上纽斯。装好之后，它查新闻就不再依赖搜索引擎了。"
+               data-i18n-en="Workbuddy, Codex, DeepSeek Harness, OpenClaw, and other mainstream agents work out of the box. Any agent that can load a skill text and send HTTP requests can install Nius — and from then on, it stops relying on web search for news.">Workbuddy、Codex、DeepSeek Harness、OpenClaw 等主流 agent 产品开箱即用；只要你的 agent 能读入一段 skill 文本、会发 HTTP 请求，就能装上纽斯。装好之后，它查新闻就不再依赖搜索引擎了。</div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section">
+      <div class="container section-head">
+        <span class="kicker" data-i18n-zh="常见问题" data-i18n-en="FAQ">常见问题</span>
+        <h2 class="section-title" data-i18n-zh="你可能想问" data-i18n-en="You might be wondering">你可能想问</h2>
+      </div>
+      <div class="container">
+        <details class="faq">
+          <summary data-i18n-zh="它和让 Agent 自己搜新闻，差别在哪？" data-i18n-en="Why not just let my agent search the web?">它和让 Agent 自己搜新闻，差别在哪？</summary>
+          <p class="faq-a"
+             data-i18n-zh="让 Agent 网搜，拿到的是未经整理的网页碎片：质量参差、叫法不一、新旧难辨，还得自己拼。纽斯是提前整理好的结构化新闻库——信息点拆好、叫法归组、时间分明、出处可查，Agent 一步就能拿到能用的答案。"
+             data-i18n-en="Web search hands your agent raw fragments — mixed quality, inconsistent names, unclear freshness — that it must piece together. Nius is pre-structured: extracted points, merged entities, clear timing, checkable sources. One step, usable answers.">让 Agent 网搜，拿到的是未经整理的网页碎片：质量参差、叫法不一、新旧难辨，还得自己拼。纽斯是提前整理好的结构化新闻库——信息点拆好、叫法归组、时间分明、出处可查，Agent 一步就能拿到能用的答案。</p>
+        </details>
+        <details class="faq">
+          <summary data-i18n-zh="新闻是从哪来的？" data-i18n-en="Where does the news come from?">新闻是从哪来的？</summary>
+          <p class="faq-a"
+             data-i18n-zh="纽斯持续从一批新闻源收录文章，拆解成事实、观点、计划三类事件入库。目前收录了多少文章、多少事件，打开 news.yao-yang.cn 首页的看板就能看到实时数字。"
+             data-i18n-en="Nius continuously collects articles from a set of news sources and distills them into facts, opinions, and plans. Live counts of articles and events are on the dashboard at news.yao-yang.cn.">纽斯持续从一批新闻源收录文章，拆解成事实、观点、计划三类事件入库。目前收录了多少文章、多少事件，打开 news.yao-yang.cn 首页的看板就能看到实时数字。</p>
+        </details>
+        <details class="faq">
+          <summary data-i18n-zh="skill 会不会悄悄过期？" data-i18n-en="Does the skill go stale?">skill 会不会悄悄过期？</summary>
+          <p class="faq-a"
+             data-i18n-zh="不会。skill 每次使用前先校验版本；接口契约升级时会收到明确提醒，并按「更新协议」把电脑上所有相关副本一次更新到位，然后用新版本自动重试。"
+             data-i18n-en="Not silently. Before every use it checks its version; when the API contract changes, the agent is prompted to refresh every copy on your machine via the update protocol, then retries with the new version.">不会。skill 每次使用前先校验版本；接口契约升级时会收到明确提醒，并按「更新协议」把电脑上所有相关副本一次更新到位，然后用新版本自动重试。</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="cta-band">
+          <h2 data-i18n-zh="一句话，让 Agent 学会读新闻。" data-i18n-en="One sentence, and your agent reads the news.">一句话，让 Agent 学会读新闻。</h2>
+          <p data-i18n-zh="装好之后，直接问：「XX 最近有什么动态？」" data-i18n-en="Once installed, just ask: &ldquo;What&rsquo;s new with X?&rdquo;">装好之后，直接问：「XX 最近有什么动态？」</p>
+          <a class="btn btn-primary" href="https://news.yao-yang.cn/" target="_blank" rel="noopener">
+            <span data-i18n-zh="安装到你的 Agent" data-i18n-en="Install on your agent">安装到你的 Agent</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n-zh="© 2026 纽斯 · 让新闻一目了然" data-i18n-en="© 2026 Nius · News, at a glance">© 2026 纽斯 · 让新闻一目了然</span>
+      <a href="https://news.yao-yang.cn/" target="_blank" rel="noopener"
+         data-i18n-zh="news.yao-yang.cn ↗" data-i18n-en="news.yao-yang.cn ↗">news.yao-yang.cn ↗</a>
+    </div>
+  </footer>
+
+  <script src="../../assets/js/i18n.js"></script>
+</body>
+</html>

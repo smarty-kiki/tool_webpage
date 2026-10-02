@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n-zh="梦游 Wiki — 万物皆可 Wiki，包括你今晚的梦" data-i18n-en="Trippy Wiki — a wiki for anything, even tonight's dream">梦游 Wiki — 万物皆可 Wiki，包括你今晚的梦</title>
+  <meta name="description" data-i18n-zh="梦游 Wiki：一个由想象力驱动的 Wiki。你出脑洞，AI 帮你写成词条，路过的人用「飘」和「拉」投票。注册就送 10 万积分。" data-i18n-en="Trippy Wiki: an imagination-powered wiki. You bring the idea, AI writes the entry, passers-by vote with 'Float' or 'Lame'. 100k credits on sign-up.">
+  <link rel="icon" type="image/png" href="../../assets/img/trippy-wiki.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    /* ===== Wiki 词条演示（仅本页使用） ===== */
+    .tw-entry {
+      position: absolute;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(400px, 94%);
+      background: rgba(19, 23, 42, 0.92);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      padding: 22px 24px 24px;
+    }
+    .tw-cat {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+      border-radius: 999px;
+      padding: 3px 11px;
+      margin-bottom: 12px;
+    }
+    .tw-title { font-size: 18px; font-weight: 800; line-height: 1.4; margin-bottom: 6px; }
+    .tw-meta { font-size: 12px; color: var(--faint); margin-bottom: 16px; }
+    .tw-line {
+      height: 10px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      margin-bottom: 9px;
+    }
+    .tw-line.l1 { width: 100%; }
+    .tw-line.l2 { width: 94%; }
+    .tw-line.l3 { width: 97%; }
+    .tw-line.l4 { width: 58%; }
+    .tw-votes { display: flex; gap: 10px; margin-top: 18px; }
+    .tw-vote {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .tw-vote.up {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 13%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+      box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 18%, transparent);
+    }
+    .tw-seed {
+      position: absolute;
+      right: 4%;
+      bottom: 6%;
+      font-size: 12.5px;
+      color: var(--muted);
+      background: rgba(19, 23, 42, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 14px;
+      box-shadow: var(--shadow);
+      animation: twfloat 3.2s ease-in-out infinite;
+    }
+    @keyframes twfloat {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-7px); }
+    }
+    @media (max-width: 560px) {
+      .tw-entry { top: 44px; padding: 18px 18px 20px; }
+      .tw-seed { display: none; }
+    }
+  </style>
+</head>
+<body style="--accent: #8a97ff; --btn-text: #12142e;">
+
+  <header class="site-header">
+    <div class="container nav">
+      <a class="back-link" href="../../">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        <span data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</span>
+      </a>
+      <div class="nav-right">
+        <a class="btn btn-primary btn-sm" href="https://www.trippy.wiki/" target="_blank" rel="noopener"
+           data-i18n-zh="打开网站" data-i18n-en="Open site">打开网站</a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <div class="container hero-inner">
+
+        <div class="hero-copy">
+          <div class="hero-app">
+            <img src="../../assets/img/trippy-wiki.png" alt="Trippy Wiki">
+            <div>
+              <div class="hero-app-name" data-i18n-zh="梦游 Wiki" data-i18n-en="Trippy Wiki">梦游 Wiki</div>
+              <div class="hero-app-cat" data-i18n-zh="网页应用 · 打开即逛" data-i18n-en="Web app · Browse in your browser">网页应用 · 打开即逛</div>
+            </div>
+          </div>
+          <h1 class="hero-title"
+              data-i18n-zh="万物皆可 Wiki，<br><em>包括你今晚的梦。</em>"
+              data-i18n-en="A wiki for anything —<br><em>even tonight's dream.</em>">万物皆可 Wiki，<br><em>包括你今晚的梦。</em></h1>
+          <p class="hero-sub"
+             data-i18n-zh="梦游 Wiki 是一个由想象力驱动的百科：你出一个点子，AI 帮你写成正经的 Wiki 词条；路过的人用「飘」和「拉」投票，让最好玩的脑洞飘起来。"
+             data-i18n-en="Trippy Wiki is an encyclopedia powered by imagination: you bring the idea, the AI writes it up as a proper wiki entry, and passers-by vote with 'Float' or 'Lame' to send the best daydreams drifting.">梦游 Wiki 是一个由想象力驱动的百科：你出一个点子，AI 帮你写成正经的 Wiki 词条；路过的人用「飘」和「拉」投票，让最好玩的脑洞飘起来。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://www.trippy.wiki/" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              <span data-i18n-zh="打开梦游 Wiki" data-i18n-en="Open Trippy Wiki">打开梦游 Wiki</span>
+            </a>
+          </div>
+          <div class="facts">
+            <span class="fact" data-i18n-zh="免费开逛" data-i18n-en="Free to browse">免费开逛</span>
+            <span class="fact" data-i18n-zh="注册送 10 万积分" data-i18n-en="100k credits on sign-up">注册送 10 万积分</span>
+            <span class="fact" data-i18n-zh="AI 帮你写词条" data-i18n-en="AI writes it up">AI 帮你写词条</span>
+            <span class="fact" data-i18n-zh="无需安装" data-i18n-en="No install needed">无需安装</span>
+          </div>
+        </div>
+
+        <!-- 词条效果演示（纯装饰） -->
+        <div class="mock" aria-hidden="true">
+          <div class="tw-entry">
+            <span class="tw-cat" data-i18n-zh="不存在的城市" data-i18n-en="Cities that don't exist">不存在的城市</span>
+            <h3 class="tw-title" data-i18n-zh="雾中市：一座只在雾天出现的城市" data-i18n-en="Fog City: it only appears in the fog">雾中市：一座只在雾天出现的城市</h3>
+            <div class="tw-meta" data-i18n-zh="梦游者 #42 创建 · AI 代笔" data-i18n-en="Created by Dreamer #42 · written by AI">梦游者 #42 创建 · AI 代笔</div>
+            <div class="tw-line l1"></div>
+            <div class="tw-line l2"></div>
+            <div class="tw-line l3"></div>
+            <div class="tw-line l4"></div>
+            <div class="tw-votes">
+              <span class="tw-vote up" data-i18n-zh="太飘了 · 128" data-i18n-en="Too floaty · 128">太飘了 · 128</span>
+              <span class="tw-vote" data-i18n-zh="太拉了 · 3" data-i18n-en="Too lame · 3">太拉了 · 3</span>
+            </div>
+          </div>
+          <span class="tw-seed" data-i18n-zh="🌍 又一个词条飘走了" data-i18n-en="🌍 Another entry drifts away">🌍 又一个词条飘走了</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 为什么 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="为什么做它" data-i18n-en="WHY">为什么做它</span>
+          <h2 class="section-title"
+              data-i18n-zh="半夜的奇想，第二天就忘了。" data-i18n-en="That 2 a.m. idea? Gone by morning.">半夜的奇想，第二天就忘了。</h2>
+          <p class="section-sub"
+             data-i18n-zh="奇想最难的不是想到，是安放。" data-i18n-en="The hard part of a wild idea isn't having it — it's giving it somewhere to live.">奇想最难的不是想到，是安放。</p>
+        </div>
+
+        <div class="pain-grid">
+          <div class="pain-card">
+            <h3 data-i18n-zh="「想想，就忘了」" data-i18n-en="&ldquo;Thought it, lost it&rdquo;">「想想，就忘了」</h3>
+            <p data-i18n-zh="洗澡时想到的设定、通勤路上编的故事，没有地方记录，也就真的没了。"
+               data-i18n-en="The lore you invented in the shower, the story from your commute — with nowhere to write them down, they're just gone.">洗澡时想到的设定、通勤路上编的故事，没有地方记录，也就真的没了。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="「写词条太费劲」" data-i18n-en="&ldquo;Writing it up is a chore&rdquo;">「写词条太费劲」</h3>
+            <p data-i18n-zh="真要动笔，标题、章节、正文……想法的热乎劲儿早就凉了。"
+               data-i18n-en="By the time you've set up headings and sections, the spark has gone cold.">真要动笔，标题、章节、正文……想法的热乎劲儿早就凉了。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="「怪想法，说给谁听？」" data-i18n-en="&ldquo;Who do you even tell?&rdquo;">「怪想法，说给谁听？」</h3>
+            <p data-i18n-zh="越有趣的脑洞越难找到同频的人——讲给朋友听，还得先铺垫半小时。"
+               data-i18n-en="The weirder the idea, the harder it is to find kindred spirits — briefing a friend takes half an hour.">越有趣的脑洞越难找到同频的人——讲给朋友听，还得先铺垫半小时。</p>
+          </div>
+        </div>
+
+        <p class="pain-transition"
+           data-i18n-zh="梦游 Wiki 把这三件事，都变成了<em>顺手的事</em>。"
+           data-i18n-en="Trippy Wiki turns all three into things you can do <em>on the spot</em>.">梦游 Wiki 把这三件事，都变成了<em>顺手的事</em>。</p>
+      </div>
+    </section>
+
+    <!-- ============ 核心功能 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="核心功能" data-i18n-en="FEATURES">核心功能</span>
+          <h2 class="section-title"
+              data-i18n-zh="在这里，脑洞是被认真对待的" data-i18n-en="Here, daydreams get taken seriously">在这里，脑洞是被认真对待的</h2>
+          <p class="section-sub"
+             data-i18n-zh="一套最正经的 Wiki 形态，装最不正经的内容。"
+             data-i18n-en="A perfectly serious wiki format for perfectly unserious content.">一套最正经的 Wiki 形态，装最不正经的内容。</p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>
+            </div>
+            <h3 data-i18n-zh="你出想法，AI 来写" data-i18n-en="You dream it, AI writes it">你出想法，AI 来写</h3>
+            <p data-i18n-zh="丢给它一句话设定，AI 就帮你写成结构完整的词条：背景、章节、细节一应俱全，你只管决定脑洞的方向。"
+               data-i18n-en="Toss in a one-line premise and the AI writes a full entry — background, sections and all. You just steer the nonsense.">丢给它一句话设定，AI 就帮你写成结构完整的词条：背景、章节、细节一应俱全，你只管决定脑洞的方向。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+            </div>
+            <h3 data-i18n-zh="「飘」与「拉」" data-i18n-en="Float it or flame it">「飘」与「拉」</h3>
+            <p data-i18n-zh="每天路过都能投一票：太飘了，还是太拉了。票数是脑洞界的硬通货，让最好玩的内容飘到最前面。"
+               data-i18n-en="One vote a day: too floaty, or too lame. Votes are the hard currency of imagination — they float the best stuff to the top.">每天路过都能投一票：太飘了，还是太拉了。票数是脑洞界的硬通货，让最好玩的内容飘到最前面。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </div>
+            <h3 data-i18n-zh="万物皆可建分类" data-i18n-en="Any category goes">万物皆可建分类</h3>
+            <p data-i18n-zh="虚构的国家、不存在的节日、你梦里那座城市——正经百科不收的，这里照单全收，分类随你开。"
+               data-i18n-en="Fictional countries, holidays that don't exist, the geography of a city you dreamed — the stuff serious encyclopedias reject is welcome here. You open the categories.">虚构的国家、不存在的节日、你梦里那座城市——正经百科不收的，这里照单全收，分类随你开。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+            </div>
+            <h3 data-i18n-zh="注册就送 10 万积分" data-i18n-en="100k credits, on the house">注册就送 10 万积分</h3>
+            <p data-i18n-zh="新用户注册即送 10 万积分，足够把脑袋里攒了很久的脑洞，一次性全倒出来。"
+               data-i18n-en="New accounts start with 100,000 credits — enough to pour out every idea you've been hoarding.">新用户注册即送 10 万积分，足够把脑袋里攒了很久的脑洞，一次性全倒出来。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            </div>
+            <h3 data-i18n-zh="词条能分享，朋友能围观" data-i18n-en="Shareable entries">词条能分享，朋友能围观</h3>
+            <p data-i18n-zh="每个词条都有独立页面，转发给朋友，一起见证这个想法有多离谱。"
+               data-i18n-en="Every entry gets its own page — share it and let friends witness just how unhinged the idea is.">每个词条都有独立页面，转发给朋友，一起见证这个想法有多离谱。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <h3 data-i18n-zh="每位梦游者都有档案馆" data-i18n-en="Every dreamer gets an archive">每位梦游者都有档案馆</h3>
+            <p data-i18n-zh="独立的作者主页：写过什么、飘过几次，一笔一笔留档，是你的脑洞履历。"
+               data-i18n-en="A personal author page: every entry written, every float earned, all on the record — your résumé of nonsense.">独立的作者主页：写过什么、飘过几次，一笔一笔留档，是你的脑洞履历。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 三步入梦 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="快速上手" data-i18n-en="GET STARTED">快速上手</span>
+          <h2 class="section-title"
+              data-i18n-zh="三步，入梦" data-i18n-en="Drift in, in three steps">三步，入梦</h2>
+          <p class="section-sub"
+             data-i18n-zh="不用下载，浏览器打开就是一场漫游。"
+             data-i18n-en="Nothing to install — open a browser and start drifting.">不用下载，浏览器打开就是一场漫游。</p>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <h3 data-i18n-zh="打开网站" data-i18n-en="Open the site">打开网站</h3>
+            <p data-i18n-zh="访问 trippy.wiki，先随便逛逛，看看别人的梦都游到了哪。"
+               data-i18n-en="Head to trippy.wiki and wander — see where other dreamers have drifted.">访问 trippy.wiki，先随便逛逛，看看别人的梦都游到了哪。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <h3 data-i18n-zh="注册，领积分" data-i18n-en="Sign up, grab credits">注册，领积分</h3>
+            <p data-i18n-zh="注册即送 10 万积分，AI 创作的额度直接拉满。"
+               data-i18n-en="You'll get 100,000 credits on the spot — plenty of headroom for AI writing.">注册即送 10 万积分，AI 创作的额度直接拉满。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <h3 data-i18n-zh="丢出一个脑洞" data-i18n-en="Drop an idea">丢出一个脑洞</h3>
+            <p data-i18n-zh="一句话说清你的设定，AI 开写，你来把关。发布之后，就等人来「飘」了。"
+               data-i18n-en="Describe your premise in one line, let the AI draft it, keep editorial control. Publish — then wait for the floats.">一句话说清你的设定，AI 开写，你来把关。发布之后，就等人来「飘」了。</p>
+          </div>
+        </div>
+
+        <details class="note">
+          <summary data-i18n-zh="积分用完了怎么办？" data-i18n-en="What happens when credits run out?">积分用完了怎么办？</summary>
+          <div class="note-body">
+            <p data-i18n-zh="积分只在 AI 创作时消耗。用完后可以在站内充值继续写；逛词条和投票不受影响，永远免费。"
+               data-i18n-en="Credits are only spent on AI writing. Top up on-site when you run out; browsing and voting are unaffected — and always free.">积分只在 AI 创作时消耗。用完后可以在站内充值继续写；逛词条和投票不受影响，永远免费。</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="常见问题" data-i18n-en="FAQ">常见问题</span>
+          <h2 class="section-title"
+              data-i18n-zh="你可能想问" data-i18n-en="You might be wondering">你可能想问</h2>
+        </div>
+
+        <div class="faq">
+          <details>
+            <summary data-i18n-zh="这是个正经的百科吗？" data-i18n-en="Is this a serious encyclopedia?">这是个正经的百科吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不是——恰恰相反。这里的词条大多来自想象力，当消遣读就好，请勿当事实引用（连搜索引擎都被我们礼貌劝退了）。"
+               data-i18n-en="No — quite the opposite. Entries here mostly come from imagination; read them for fun, don't cite them as fact. (We even asked search engines, politely, to stay out.)">不是——恰恰相反。这里的词条大多来自想象力，当消遣读就好，请勿当事实引用（连搜索引擎都被我们礼貌劝退了）。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="要花钱吗？" data-i18n-en="Does it cost money?">要花钱吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="逛词条和投票免费，注册送 10 万积分用于 AI 创作；用完了可以站内充值。"
+               data-i18n-en="Browsing and voting are free, and you start with 100,000 credits for AI writing; top up on-site when you need more.">逛词条和投票免费，注册送 10 万积分用于 AI 创作；用完了可以站内充值。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="内容都是 AI 写的吗？" data-i18n-en="Is the content all AI-written?">内容都是 AI 写的吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="点子来自人，AI 负责把它写成完整的词条，创作者可以编辑把关后再发布——人类的脑洞，AI 的手速。"
+               data-i18n-en="The ideas come from people, the AI turns them into full entries, and the creator edits and publishes the final version — human imagination, AI typing speed.">点子来自人，AI 负责把它写成完整的词条，创作者可以编辑把关后再发布——人类的脑洞，AI 的手速。</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="cta-band">
+          <h2 data-i18n-zh="今晚做个梦，明天来建词条。" data-i18n-en="Dream tonight. Write the wiki entry tomorrow.">今晚做个梦，明天来建词条。</h2>
+          <p data-i18n-zh="梦游 Wiki 已经开张，就等你的第一个脑洞。"
+             data-i18n-en="Trippy Wiki is open — all it's missing is your first idea.">梦游 Wiki 已经开张，就等你的第一个脑洞。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://www.trippy.wiki/" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              <span data-i18n-zh="打开梦游 Wiki" data-i18n-en="Open Trippy Wiki">打开梦游 Wiki</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n-zh="© 2026 梦游 Wiki · 飘到哪看到哪" data-i18n-en="© 2026 Trippy Wiki · drift where you may">© 2026 梦游 Wiki · 飘到哪看到哪</span>
+      <a href="../../" data-i18n-zh="所有工具 →" data-i18n-en="All tools →">所有工具 →</a>
+    </div>
+  </footer>
+
+  <script src="../../assets/js/i18n.js"></script>
+</body>
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n-zh="任务坞 · NotchTasks — 屏幕边缘的任务把手" data-i18n-en="NotchTasks — a task handle on your screen edge">任务坞 · NotchTasks — 屏幕边缘的任务把手</title>
+  <meta name="description" data-i18n-zh="任务坞是 macOS 屏幕右边缘的一枚小把手：WorkBuddy 的会话、终端里的 Claude Code CLI，谁在跑、谁在等你确认、谁刚收工，鼠标扫过去一目了然。该你出手时，它会亮。" data-i18n-en="NotchTasks is a little handle on the right edge of your macOS screen: WorkBuddy sessions and terminal Claude Code CLIs — running, waiting on you, or just finished. Sweep over it to see; it lights up when it's your turn.">
+  <link rel="icon" type="image/png" href="../../assets/img/notch-tasks.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    /* ===== 任务坞页局部：右缘任务面板 ===== */
+    .nt-panel {
+      position: absolute;
+      top: 64px; right: 0;
+      width: min(420px, 92%);
+      background: rgba(19, 23, 42, 0.92);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      border-radius: 14px 4px 4px 14px;
+      padding: 16px 18px 14px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45),
+                  0 0 44px color-mix(in srgb, var(--accent) 16%, transparent);
+      backdrop-filter: blur(6px);
+    }
+    .nt-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .nt-title { font-size: 14px; font-weight: 800; letter-spacing: 0.02em; }
+    .nt-wait {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #ffb020;
+      background: rgba(255, 176, 32, 0.12);
+      border: 1px solid rgba(255, 176, 32, 0.32);
+      border-radius: 999px;
+      padding: 3px 10px;
+    }
+    .nt-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0;
+      border-top: 1px dashed rgba(255, 255, 255, 0.09);
+      font-size: 13px;
+    }
+    .nt-dot { flex-shrink: 0; width: 9px; height: 9px; border-radius: 50%; }
+    .nt-dot.wait  { background: #ffb020; animation: nt-pulse 1.6s ease-in-out infinite; }
+    .nt-dot.run   { background: var(--accent); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent); }
+    .nt-dot.done  { background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.55); }
+    .nt-dot.old   { background: rgba(255, 255, 255, 0.22); }
+    @keyframes nt-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 176, 32, 0.45); }
+      50%      { box-shadow: 0 0 0 6px rgba(255, 176, 32, 0); }
+    }
+    .nt-name { color: rgba(255, 255, 255, 0.9); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nt-src {
+      flex-shrink: 0;
+      margin-left: auto;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .nt-src.wb { color: #7cb8ff; background: rgba(124, 184, 255, 0.12); border: 1px solid rgba(124, 184, 255, 0.3); }
+    .nt-src.cli { color: #55e0a8; background: rgba(85, 224, 168, 0.1); border: 1px solid rgba(85, 224, 168, 0.28); }
+    .nt-state { flex-shrink: 0; width: 58px; text-align: right; font-size: 11.5px; }
+    .nt-state.wait { color: #ffb020; }
+    .nt-state.run  { color: var(--accent); }
+    .nt-state.done { color: #34d399; }
+    .nt-state.old  { color: rgba(255, 255, 255, 0.38); }
+    .nt-foot { display: flex; gap: 8px; margin-top: 12px; padding-top: 11px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+    .nt-foot span {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      padding: 3px 10px;
+    }
+    .nt-alert {
+      position: absolute;
+      left: -10px; bottom: 44px;
+      background: rgba(255, 176, 32, 0.14);
+      border: 1px solid rgba(255, 176, 32, 0.4);
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 12.5px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+      animation: nt-drift 5.2s ease-in-out infinite;
+    }
+    @keyframes nt-drift {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-9px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .nt-alert, .nt-dot.wait { animation: none; }
+    }
+    @media (max-width: 560px) {
+      .nt-alert { display: none; }
+      .nt-panel { width: 96%; padding: 14px 14px 12px; }
+      .nt-state { display: none; }
+    }
+  </style>
+</head>
+<body style="--accent: #4aa3ff; --btn-text: #0a1a30;">
+
+  <header class="site-header">
+    <div class="container nav">
+      <a class="back-link" href="../../">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        <span data-i18n-zh="全部工具" data-i18n-en="All tools">全部工具</span>
+      </a>
+      <div class="nav-right">
+        <a class="nav-link hide-sm" href="https://github.com/smarty-kiki/notch_tasks" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="https://github.com/smarty-kiki/notch_tasks/releases/latest" target="_blank" rel="noopener">
+          <span data-i18n-zh="免费下载" data-i18n-en="Download free">免费下载</span>
+        </a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <div class="container hero-inner">
+
+        <div class="hero-copy">
+          <div class="hero-app">
+            <img src="../../assets/img/notch-tasks.png" alt="任务坞">
+            <div>
+              <div class="hero-app-name" data-i18n-zh="任务坞 · NotchTasks" data-i18n-en="NotchTasks">任务坞 · NotchTasks</div>
+              <div class="hero-app-cat" data-i18n-zh="macOS 应用 · 常驻屏幕右缘" data-i18n-en="macOS app · Lives on your screen edge">macOS 应用 · 常驻屏幕右缘</div>
+            </div>
+          </div>
+          <h1 class="hero-title"
+              data-i18n-zh="同时跑着的任务，<br><em>扫一眼全知道。</em>"
+              data-i18n-en="Every task you're running,<br><em>one glance away.</em>">同时跑着的任务，<br><em>扫一眼全知道。</em></h1>
+          <p class="hero-sub"
+             data-i18n-zh="任务坞是屏幕右边缘的一枚小把手：WorkBuddy 的会话、终端里的 Claude Code CLI，谁在跑、谁在等你确认、谁刚收工——鼠标扫过去就展开。该你出手时，它还会亮。"
+             data-i18n-en="NotchTasks is a little handle on the right edge of your screen: WorkBuddy sessions and terminal Claude Code CLIs — running, waiting on you, or just finished. Sweep over it to expand; it lights up when your turn comes.">任务坞是屏幕右边缘的一枚小把手：WorkBuddy 的会话、终端里的 Claude Code CLI，谁在跑、谁在等你确认、谁刚收工——鼠标扫过去就展开。该你出手时，它还会亮。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/notch_tasks/releases/latest" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
+              <span data-i18n-zh="免费下载" data-i18n-en="Download free">免费下载</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/smarty-kiki/notch_tasks" target="_blank" rel="noopener"
+               data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
+          </div>
+          <div class="facts">
+            <span class="fact">macOS 14+</span>
+            <span class="fact" data-i18n-zh="免费 · MIT 开源" data-i18n-en="Free · MIT open source">免费 · MIT 开源</span>
+            <span class="fact" data-i18n-zh="全程只读" data-i18n-en="Strictly read-only">全程只读</span>
+            <span class="fact" data-i18n-zh="无需任何权限" data-i18n-en="No permissions needed">无需任何权限</span>
+          </div>
+        </div>
+
+        <!-- 右缘任务面板演示（纯装饰） -->
+        <div class="mock" aria-hidden="true">
+          <div class="nt-panel">
+            <div class="nt-head">
+              <span class="nt-title" data-i18n-zh="任务坞 · 正在盯着的任务" data-i18n-en="NotchTasks · watching now">任务坞 · 正在盯着的任务</span>
+              <span class="nt-wait" data-i18n-zh="1 个等你确认" data-i18n-en="1 waiting on you">1 个等你确认</span>
+            </div>
+            <div class="nt-row">
+              <i class="nt-dot wait"></i>
+              <span class="nt-name" data-i18n-zh="修复下载超时" data-i18n-en="fix download timeout">修复下载超时</span>
+              <span class="nt-src cli">CLAUDE CLI</span>
+              <span class="nt-state wait" data-i18n-zh="等你确认" data-i18n-en="waiting">等你确认</span>
+            </div>
+            <div class="nt-row">
+              <i class="nt-dot run"></i>
+              <span class="nt-name" data-i18n-zh="重构登录模块" data-i18n-en="refactor login module">重构登录模块</span>
+              <span class="nt-src wb" data-i18n-zh="WORKBUDDY" data-i18n-en="WORKBUDDY">WORKBUDDY</span>
+              <span class="nt-state run" data-i18n-zh="执行中" data-i18n-en="running">执行中</span>
+            </div>
+            <div class="nt-row">
+              <i class="nt-dot run"></i>
+              <span class="nt-name" data-i18n-zh="写集成测试" data-i18n-en="write integration tests">写集成测试</span>
+              <span class="nt-src cli">CLAUDE CLI</span>
+              <span class="nt-state run" data-i18n-zh="执行中" data-i18n-en="running">执行中</span>
+            </div>
+            <div class="nt-row">
+              <i class="nt-dot done"></i>
+              <span class="nt-name" data-i18n-zh="翻译 API 文档" data-i18n-en="translate API docs">翻译 API 文档</span>
+              <span class="nt-src wb" data-i18n-zh="WORKBUDDY" data-i18n-en="WORKBUDDY">WORKBUDDY</span>
+              <span class="nt-state done" data-i18n-zh="刚完成" data-i18n-en="just done">刚完成</span>
+            </div>
+            <div class="nt-row">
+              <i class="nt-dot old"></i>
+              <span class="nt-name" data-i18n-zh="周报整理" data-i18n-en="weekly report">周报整理</span>
+              <span class="nt-src wb" data-i18n-zh="WORKBUDDY" data-i18n-en="WORKBUDDY">WORKBUDDY</span>
+              <span class="nt-state old" data-i18n-zh="已完成" data-i18n-en="done">已完成</span>
+            </div>
+            <div class="nt-foot">
+              <span data-i18n-zh="打开 WorkBuddy" data-i18n-en="Open WorkBuddy">打开 WorkBuddy</span>
+              <span data-i18n-zh="立即刷新" data-i18n-en="Refresh">立即刷新</span>
+              <span data-i18n-zh="声音 · 开" data-i18n-en="Sound · on">声音 · 开</span>
+            </div>
+          </div>
+          <span class="nt-alert" data-i18n-zh="🔔 有任务停下来，在等你确认" data-i18n-en="🔔 A task paused — waiting on you">🔔 有任务停下来，在等你确认</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 为什么 ============ -->
+    <section class="section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="为什么" data-i18n-en="Why">为什么</span>
+          <h2 class="section-title"
+              data-i18n-zh="同时开工的越多，<br>越不知道<em>该看哪一个</em>。"
+              data-i18n-en="The more you run at once,<br><em>the less you know where to look.</em>">同时开工的越多，<br>越不知道<em>该看哪一个</em>。</h2>
+          <p class="section-sub"
+             data-i18n-zh="WorkBuddy 里几个会话在干活，终端里还开着几个 Claude Code——谁来替你盯着？"
+             data-i18n-en="Several WorkBuddy sessions here, a few Claude Code CLIs there — who's watching them for you?">WorkBuddy 里几个会话在干活，终端里还开着几个 Claude Code——谁来替你盯着？</p>
+        </div>
+        <div class="pain-grid">
+          <div class="pain-card">
+            <h3 data-i18n-zh="谁跑完了？不知道" data-i18n-en="Who's done? No idea">谁跑完了？不知道</h3>
+            <p data-i18n-zh="不去逐个切换窗口，谁完成了、谁卡住了、谁早就没动静，完全没数。"
+               data-i18n-en="Without switching windows one by one, you can't tell what finished, what's stuck, and what went quiet ages ago.">不去逐个切换窗口，谁完成了、谁卡住了、谁早就没动静，完全没数。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="该确认的，一错过就干等" data-i18n-en="Miss a confirmation, pay in dead time">该确认的，一错过就干等</h3>
+            <p data-i18n-zh="任务停下来等你确认或授权，你却在别的窗口里忙。它干等一步，你白耗十分钟。"
+               data-i18n-en="A task pauses for your confirmation while you're busy elsewhere — it idles a step, you burn ten minutes.">任务停下来等你确认或授权，你却在别的窗口里忙。它干等一步，你白耗十分钟。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="查状态本身就是打断" data-i18n-en="Checking is itself an interruption">查状态本身就是打断</h3>
+            <p data-i18n-zh="为了看一眼而切走手头的事，回来还得重新进入状态。检查得越勤，断得越碎。"
+               data-i18n-en="Peeking at status means leaving what you were doing — and warming back up after. The more you check, the more you fragment.">为了看一眼而切走手头的事，回来还得重新进入状态。检查得越勤，断得越碎。</p>
+          </div>
+        </div>
+        <p class="pain-transition"
+           data-i18n-zh="一枚把手贴在屏幕边上，<br><em>替你把视线收拢。</em>"
+           data-i18n-en="A handle on the screen edge<br><em>gathers your attention for you.</em>">一枚把手贴在屏幕边上，<br><em>替你把视线收拢。</em></p>
+      </div>
+    </section>
+
+    <!-- ============ 能做什么 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="能做什么" data-i18n-en="What it does">能做什么</span>
+          <h2 class="section-title"
+              data-i18n-zh="它不弹窗、不吵闹，<br>只在<em>该出手时</em>亮一下。"
+              data-i18n-en="No pop-ups, no noise —<br>it glows <em>only when it's your turn</em>.">它不弹窗、不吵闹，<br>只在<em>该出手时</em>亮一下。</h2>
+          <p class="section-sub"
+             data-i18n-zh="没任务要操心的时候，它安安静静地待在屏幕边上。"
+             data-i18n-en="When nothing needs you, it sits quietly at the edge of your screen.">没任务要操心的时候，它安安静静地待在屏幕边上。</p>
+        </div>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">👀</div>
+            <h3 data-i18n-zh="扫一眼，全知道" data-i18n-en="One glance, full picture">扫一眼，全知道</h3>
+            <p data-i18n-zh="把手平时安安静静贴在右边缘；鼠标扫过去，最近的任务按状态排好序展开——谁在跑、谁在等你、谁刚收工，颜色一眼分清。"
+               data-i18n-en="The handle sits quietly on the right edge; sweep over it and recent tasks appear, sorted by state — running, waiting on you, just finished, all color-coded.">把手平时安安静静贴在右边缘；鼠标扫过去，最近的任务按状态排好序展开——谁在跑、谁在等你、谁刚收工，颜色一眼分清。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🔔</div>
+            <h3 data-i18n-zh="该你出手时，它吵你" data-i18n-en="It nags you when it's your turn">该你出手时，它吵你</h3>
+            <p data-i18n-zh="任务停下来等你确认或授权时，把手亮起脉冲描边和光晕，还可以响一声、发一条系统通知——不盯屏幕也不会错过。"
+               data-i18n-en="When a task pauses for your confirmation, the handle lights up with a pulsing glow — plus an optional sound and system notification. You'll never miss your turn.">任务停下来等你确认或授权时，把手亮起脉冲描边和光晕，还可以响一声、发一条系统通知——不盯屏幕也不会错过。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🖱️</div>
+            <h3 data-i18n-zh="点一下，就回去" data-i18n-en="Click, and you're back">点一下，就回去</h3>
+            <p data-i18n-zh="点任务行直接跳回它的老家：WorkBuddy 的任务切回 WorkBuddy，CLI 的任务切到 iTerm2。"
+               data-i18n-en="Click a row and you're back at its home: WorkBuddy tasks switch to WorkBuddy, CLI tasks to iTerm2.">点任务行直接跳回它的老家：WorkBuddy 的任务切回 WorkBuddy，CLI 的任务切到 iTerm2。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🌈</div>
+            <h3 data-i18n-zh="刚完成的，特别亮" data-i18n-en="Fresh finishes glow">刚完成的，特别亮</h3>
+            <p data-i18n-zh="结束 10 分钟内的任务亮着明亮的绿，之后慢慢沉成安静的灰蓝。视线焦点天然落在刚有动静的东西上。"
+               data-i18n-en="Finished within 10 minutes? Bright green. Then it quietly fades to grey-blue. Your eyes land on what just moved.">结束 10 分钟内的任务亮着明亮的绿，之后慢慢沉成安静的灰蓝。视线焦点天然落在刚有动静的东西上。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">📖</div>
+            <h3 data-i18n-zh="全程只读" data-i18n-en="Strictly read-only">全程只读</h3>
+            <p data-i18n-zh="只看任务状态，不碰你的数据、不改任何文件，也不读会话正文和代码。连系统权限都不需要。"
+               data-i18n-en="It only looks at task status — never touches your data, never reads your conversations or code, and needs no special permissions.">只看任务状态，不碰你的数据、不改任何文件，也不读会话正文和代码。连系统权限都不需要。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">⚙️</div>
+            <h3 data-i18n-zh="菜单栏里全都能调" data-i18n-en="Tuned from the menu bar">菜单栏里全都能调</h3>
+            <p data-i18n-zh="显示或收起面板、声音和通知开关、显示几条、多屏时显示在哪块屏——菜单栏图标里一次配齐。"
+               data-i18n-en="Show or hide the panel, sounds, notifications, how many rows to show, which display — all from the menu bar icon.">显示或收起面板、声音和通知开关、显示几条、多屏时显示在哪块屏——菜单栏图标里一次配齐。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 三步上手 ============ -->
+    <section class="section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="上手" data-i18n-en="Get started">上手</span>
+          <h2 class="section-title"
+              data-i18n-zh="三步，装好这枚把手。"
+              data-i18n-en="Three steps to your handle.">三步，装好这枚把手。</h2>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <span class="step-num">1</span>
+            <h3 data-i18n-zh="下载，拖进应用程序" data-i18n-en="Download and drag">下载，拖进应用程序</h3>
+            <p data-i18n-zh="到 GitHub Releases 下载 dmg，把 NotchTasks.app 拖进「应用程序」。首次打开若被拦，右键点图标 →「打开」一次即可。"
+               data-i18n-en="Grab the dmg from GitHub Releases and drag NotchTasks.app into Applications. If the first launch gets blocked, right-click the icon → Open, once.">到 GitHub Releases 下载 dmg，把 NotchTasks.app 拖进「应用程序」。首次打开若被拦，右键点图标 →「打开」一次即可。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <h3 data-i18n-zh="把手贴上屏幕右缘" data-i18n-en="The handle appears">把手贴上屏幕右缘</h3>
+            <p data-i18n-zh="启动后，一枚黑色把手出现在屏幕右边缘靠上的位置，不占 Dock、不弹窗口。WorkBuddy 和 Claude Code 的会话会自动出现。"
+               data-i18n-en="Launch it and a black handle appears on the upper right edge — no Dock icon, no windows. Your WorkBuddy and Claude Code sessions show up automatically.">启动后，一枚黑色把手出现在屏幕右边缘靠上的位置，不占 Dock、不弹窗口。WorkBuddy 和 Claude Code 的会话会自动出现。</p>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <h3 data-i18n-zh="扫过去，接着干活" data-i18n-en="Sweep, then get back to work">扫过去，接着干活</h3>
+            <p data-i18n-zh="鼠标扫过把手展开面板，点任务行直接跳回原处。之后该你出手时它会亮——平时，你都可以忘了它。"
+               data-i18n-en="Sweep over the handle to expand the panel; click a row to jump back. From then on it lights up only when it's your turn — otherwise, forget it's there.">鼠标扫过把手展开面板，点任务行直接跳回原处。之后该你出手时它会亮——平时，你都可以忘了它。</p>
+          </div>
+        </div>
+        <details class="note">
+          <summary data-i18n-zh="要给什么权限吗？会自启动吗？" data-i18n-en="Permissions? Auto-start?">要给什么权限吗？会自启动吗？</summary>
+          <div class="note-body"
+               data-i18n-zh="不需要任何系统权限：全程只读、不改任何文件。唯一会弹的是系统通知权限——不授权也不影响把手本身的提醒，只是收不到系统通知。不会开机自启，想要的话到「系统设置 → 通用 → 登录项」手动添加 NotchTasks 即可。"
+               data-i18n-en="None. Everything is read-only and no file is ever touched. The only prompt is for system notifications — decline it and the handle still alerts you, just without system notifications. It doesn't auto-start; add NotchTasks in System Settings → General → Login Items if you want.">不需要任何系统权限：全程只读、不改任何文件。唯一会弹的是系统通知权限——不授权也不影响把手本身的提醒，只是收不到系统通知。不会开机自启，想要的话到「系统设置 → 通用 → 登录项」手动添加 NotchTasks 即可。</div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section">
+      <div class="container section-head">
+        <span class="kicker" data-i18n-zh="常见问题" data-i18n-en="FAQ">常见问题</span>
+        <h2 class="section-title" data-i18n-zh="你可能想问" data-i18n-en="You might be wondering">你可能想问</h2>
+      </div>
+      <div class="container">
+        <details class="faq">
+          <summary data-i18n-zh="会读我的代码或对话内容吗？" data-i18n-en="Does it read my code or conversations?">会读我的代码或对话内容吗？</summary>
+          <p class="faq-a"
+             data-i18n-zh="不会。它只读任务的状态字段——标题、状态、工作目录、时间；不读会话正文，不读代码，也从不写任何东西。"
+             data-i18n-en="No. It reads only status fields — title, state, working directory, time. No conversation bodies, no code, and it never writes anything.">不会。它只读任务的状态字段——标题、状态、工作目录、时间；不读会话正文，不读代码，也从不写任何东西。</p>
+        </details>
+        <details class="faq">
+          <summary data-i18n-zh="打开被提示「无法验证开发者」？" data-i18n-en="macOS says it can't verify the developer?">打开被提示「无法验证开发者」？</summary>
+          <p class="faq-a"
+             data-i18n-zh="安装包是 ad-hoc 签名（没有 Apple Developer ID），首次打开会被 Gatekeeper 拦下，这不是坏了。右键点图标 →「打开」一次即可，之后正常双击。"
+             data-i18n-en="The download is ad-hoc signed (no Apple Developer ID), so Gatekeeper blocks the first launch — that's expected. Right-click the icon → Open once; double-clicking works normally afterwards.">安装包是 ad-hoc 签名（没有 Apple Developer ID），首次打开会被 Gatekeeper 拦下，这不是坏了。右键点图标 →「打开」一次即可，之后正常双击。</p>
+        </details>
+        <details class="faq">
+          <summary data-i18n-zh="不用 WorkBuddy 也能用吗？" data-i18n-en="Can I use it without WorkBuddy?">不用 WorkBuddy 也能用吗？</summary>
+          <p class="faq-a"
+             data-i18n-zh="能。它同时盯两个来源：WorkBuddy 的会话和终端里的 Claude Code CLI，缺哪个就少看一块；两个都没有时，面板只是安静地空着，不会出错。"
+             data-i18n-en="Yes. It watches two sources: WorkBuddy sessions and Claude Code CLIs in your terminal — missing one just means fewer rows. With neither, the panel simply sits quietly empty.">能。它同时盯两个来源：WorkBuddy 的会话和终端里的 Claude Code CLI，缺哪个就少看一块；两个都没有时，面板只是安静地空着，不会出错。</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="cta-band">
+          <h2 data-i18n-zh="该看哪一个，让把手告诉你。" data-i18n-en="Let the handle tell you where to look.">该看哪一个，让把手告诉你。</h2>
+          <p data-i18n-zh="免费开源，macOS 14+，Intel 与 Apple Silicon 通用。下一个多任务并行的下午，你就离不开它了。"
+             data-i18n-en="Free and open source, macOS 14+, universal binary. The next afternoon you run five things at once, you won't want to be without it.">免费开源，macOS 14+，Intel 与 Apple Silicon 通用。下一个多任务并行的下午，你就离不开它了。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/notch_tasks/releases/latest" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
+              <span data-i18n-zh="免费下载" data-i18n-en="Download free">免费下载</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/smarty-kiki/notch_tasks" target="_blank" rel="noopener"
+               data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n-zh="© 2026 任务坞 · NotchTasks" data-i18n-en="© 2026 NotchTasks">© 2026 任务坞 · NotchTasks</span>
+      <a href="https://github.com/smarty-kiki/notch_tasks" target="_blank" rel="noopener"
+         data-i18n-zh="在 GitHub 上查看 ↗" data-i18n-en="View on GitHub ↗">在 GitHub 上查看 ↗</a>
+    </div>
+  </footer>
+
+  <script src="../../assets/js/i18n.js"></script>
+</body>
+</html>

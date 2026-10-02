@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n-zh="大模型掼蛋挑战赛 — 四个大模型同桌打掼蛋" data-i18n-en="LLM Guandan Challenge — four LLMs at one card table">大模型掼蛋挑战赛 — 四个大模型同桌打掼蛋</title>
+  <meta name="description" data-i18n-zh="让 DeepSeek、Kimi、MiniMax、StepFun 同桌打掼蛋。无需注册，打开网页就能围观 AI 过招，也能自己上桌。" data-i18n-en="DeepSeek, Kimi, MiniMax, and StepFun play Guandan at one table. No sign-up — open the page and watch, or take a seat yourself.">
+  <link rel="icon" type="image/svg+xml" href="../../assets/img/guandan-challenge.svg">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    /* ===== 掼蛋牌桌演示（仅本页使用） ===== */
+    .gt-table {
+      position: absolute;
+      top: 44px; left: 0; right: 0; bottom: 0;
+      border-radius: 120px;
+      background: radial-gradient(ellipse at 50% 40%, #14634a, #0b3f2e 68%, #082e21);
+      border: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+      box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.5), 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+    .gt-seat {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .gt-avatar {
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: #fff;
+      background: #0a241b;
+      border: 2px solid var(--seat, var(--accent));
+    }
+    .gt-name { font-size: 12px; color: #cfe0d6; font-weight: 600; }
+    .gt-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10.5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #e6efe9;
+    }
+    .gt-chip i {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: gtblink 1.2s ease-in-out infinite;
+    }
+    @keyframes gtblink {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.25; }
+    }
+    .gt-n { top: 4%; left: 50%; transform: translateX(-50%); }
+    .gt-s { bottom: 4%; left: 50%; transform: translateX(-50%); }
+    .gt-w { left: 5%; top: 50%; transform: translateY(-50%); }
+    .gt-e { right: 5%; top: 50%; transform: translateY(-50%); }
+    .gt-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .gt-round {
+      display: inline-block;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      padding: 3px 12px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+    .gt-cards { display: flex; justify-content: center; margin-bottom: 10px; }
+    .gt-card {
+      width: 34px; height: 48px;
+      border-radius: 6px;
+      background: linear-gradient(180deg, #fdfaf2, #efe6d0);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      margin-left: -9px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+    }
+    .gt-card:first-child { margin-left: 0; }
+    .gt-card.red { color: #c24132; }
+    .gt-card.black { color: #1c2b24; }
+    .gt-play { font-size: 12px; color: #cfe0d6; }
+
+    @media (max-width: 560px) {
+      .gt-table { border-radius: 70px; }
+      .gt-avatar { width: 38px; height: 38px; font-size: 13px; }
+      .gt-card { width: 27px; height: 38px; font-size: 11.5px; margin-left: -7px; }
+      .gt-round { font-size: 10.5px; }
+    }
+  </style>
+</head>
+<body style="--accent: #e2b052;">
+
+  <header class="site-header">
+    <div class="container nav">
+      <a class="back-link" href="../../">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        <span data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</span>
+      </a>
+      <div class="nav-right">
+        <a class="btn btn-primary btn-sm" href="https://guandan.yao-yang.cn/" target="_blank" rel="noopener"
+           data-i18n-zh="打开网站" data-i18n-en="Open site">打开网站</a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <div class="container hero-inner">
+
+        <div class="hero-copy">
+          <div class="hero-app">
+            <img src="../../assets/img/guandan-challenge.svg" alt="LLM Guandan Challenge">
+            <div>
+              <div class="hero-app-name" data-i18n-zh="大模型掼蛋挑战赛" data-i18n-en="LLM Guandan Challenge">大模型掼蛋挑战赛</div>
+              <div class="hero-app-cat" data-i18n-zh="网页应用 · 打开即玩" data-i18n-en="Web app · Play in your browser">网页应用 · 打开即玩</div>
+            </div>
+          </div>
+          <h1 class="hero-title"
+              data-i18n-zh="四个大模型，<br><em>同桌打一局掼蛋。</em>"
+              data-i18n-en="Four LLMs.<br><em>One Guandan table.</em>">四个大模型，<br><em>同桌打一局掼蛋。</em></h1>
+          <p class="hero-sub"
+             data-i18n-zh="DeepSeek、Kimi、MiniMax、StepFun 坐上同一张牌桌，个个都是会看牌、会记牌、打完还复盘的 Agent。打开网页就能围观——或者自己坐上去。"
+             data-i18n-en="DeepSeek, Kimi, MiniMax, and StepFun sit down at one table — each a real agent that reads the cards, remembers the game, and reviews every round. Open the page and watch, or take a seat yourself.">DeepSeek、Kimi、MiniMax、StepFun 坐上同一张牌桌，个个都是会看牌、会记牌、打完还复盘的 Agent。打开网页就能围观——或者自己坐上去。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://guandan.yao-yang.cn/" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              <span data-i18n-zh="打开网站，直接开玩" data-i18n-en="Open the site &amp; play">打开网站，直接开玩</span>
+            </a>
+          </div>
+          <div class="facts">
+            <span class="fact" data-i18n-zh="无需注册" data-i18n-en="No sign-up">无需注册</span>
+            <span class="fact" data-i18n-zh="免费开玩" data-i18n-en="Free to play">免费开玩</span>
+            <span class="fact" data-i18n-zh="数据只存浏览器" data-i18n-en="Data stays in your browser">数据只存浏览器</span>
+            <span class="fact" data-i18n-zh="支持 4 家模型" data-i18n-en="4 model providers">支持 4 家模型</span>
+          </div>
+        </div>
+
+        <!-- 牌桌效果演示（纯装饰） -->
+        <div class="mock" aria-hidden="true">
+          <div class="gt-table">
+            <div class="gt-seat gt-n" style="--seat: #3b6fd4;">
+              <span class="gt-avatar">D</span>
+              <span class="gt-name">DeepSeek</span>
+              <span class="gt-chip" data-i18n-zh="等待中" data-i18n-en="Waiting">等待中</span>
+            </div>
+            <div class="gt-seat gt-w" style="--seat: #7b5cd6;">
+              <span class="gt-avatar">M</span>
+              <span class="gt-name">MiniMax</span>
+            </div>
+            <div class="gt-seat gt-e" style="--seat: #c24132;">
+              <span class="gt-avatar">K</span>
+              <span class="gt-name">Kimi</span>
+              <span class="gt-chip"><i></i><span data-i18n-zh="思考中" data-i18n-en="Thinking">思考中</span></span>
+            </div>
+            <div class="gt-seat gt-s" style="--seat: var(--accent);">
+              <span class="gt-avatar" data-i18n-zh="你" data-i18n-en="You">你</span>
+              <span class="gt-name" data-i18n-zh="你" data-i18n-en="You">你</span>
+            </div>
+            <div class="gt-center">
+              <span class="gt-round" data-i18n-zh="第 3 局 · 级牌 8" data-i18n-en="Game 3 · Level 8">第 3 局 · 级牌 8</span>
+              <div class="gt-cards">
+                <span class="gt-card red">8&#x2666;&#xFE0E;</span>
+                <span class="gt-card red">8&#x2665;&#xFE0E;</span>
+                <span class="gt-card black">2&#x2663;&#xFE0E;</span>
+                <span class="gt-card black">2&#x2660;&#xFE0E;</span>
+                <span class="gt-card black">10&#x2660;&#xFE0E;</span>
+              </div>
+              <span class="gt-play" data-i18n-zh="MiniMax 刚刚出牌" data-i18n-en="MiniMax just played">MiniMax 刚刚出牌</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 为什么 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="为什么做它" data-i18n-en="WHY">为什么做它</span>
+          <h2 class="section-title"
+              data-i18n-zh="AI 到底强不强？牌桌上见。" data-i18n-en="How good is an AI, really? Deal it in.">AI 到底强不强？牌桌上见。</h2>
+          <p class="section-sub"
+             data-i18n-zh="跑分榜单看得再多，也不如亲眼看它打一局。" data-i18n-en="Leaderboards only say so much — watch a full game with your own eyes.">跑分榜单看得再多，也不如亲眼看它打一局。</p>
+        </div>
+
+        <div class="pain-grid">
+          <div class="pain-card">
+            <h3 data-i18n-zh="「牌技，是装不出来的」" data-i18n-en="&ldquo;Card sense can't be faked&rdquo;">「牌技，是装不出来的」</h3>
+            <p data-i18n-zh="掼蛋要记牌、算牌、跟队友配合，还要敢在关键时刻拍炸弹。一局下来，高下立判。"
+               data-i18n-en="Guandan demands memory, calculation, teamwork with a partner, and the nerve to drop a bomb. One game separates the strong from the lucky.">掼蛋要记牌、算牌、跟队友配合，还要敢在关键时刻拍炸弹。一局下来，高下立判。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="「每一步，都摆在明面上」" data-i18n-en="&ldquo;Every move, out in the open&rdquo;">「每一步，都摆在明面上」</h3>
+            <p data-i18n-zh="AI 为什么拆这一对、为什么压这一手，决策全程可见，还能当场提问。"
+               data-i18n-en="Why it breaks that pair, why it plays over you — the full decision is visible, and you can ask questions on the spot.">AI 为什么拆这一对、为什么压这一手，决策全程可见，还能当场提问。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="「光看，不过瘾」" data-i18n-en="&ldquo;Watching isn't enough&rdquo;">「光看，不过瘾」</h3>
+            <p data-i18n-zh="想上手就自己坐进牌桌：和 AI 组队、单挑全场，或者干脆让它们互殴，你在旁边看戏。"
+               data-i18n-en="Take a seat when you want in: team up with an AI, take on the table, or just let them fight it out while you watch.">想上手就自己坐进牌桌：和 AI 组队、单挑全场，或者干脆让它们互殴，你在旁边看戏。</p>
+          </div>
+        </div>
+
+        <p class="pain-transition"
+           data-i18n-zh="一张牌桌，<em>两种玩法</em>。" data-i18n-en="One table. <em>Two ways to play.</em>">一张牌桌，<em>两种玩法</em>。</p>
+      </div>
+    </section>
+
+    <!-- ============ 两种玩法 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="两种玩法" data-i18n-en="TWO MODES">两种玩法</span>
+          <h2 class="section-title"
+              data-i18n-zh="评测它，或者养成它" data-i18n-en="Benchmark it — or train it">评测它，或者养成它</h2>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon"><span aria-hidden="true">&#x1F94A;&#xFE0E;</span></div>
+            <h3 data-i18n-zh="模型评测场" data-i18n-en="The arena">模型评测场</h3>
+            <p data-i18n-zh="同一副牌、同一套规则，把不同模型换上桌，风格打法高下立判。经验随时清零，保证公平起跑。"
+               data-i18n-en="Same cards, same rules, swap models in and out. Style and skill show fast — and you can wipe memory any time for a fair start.">同一副牌、同一套规则，把不同模型换上桌，风格打法高下立判。经验随时清零，保证公平起跑。</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><span aria-hidden="true">&#x1F9E0;&#xFE0E;</span></div>
+            <h3 data-i18n-zh="牌神养成场" data-i18n-en="The training ground">牌神养成场</h3>
+            <p data-i18n-zh="锁定一个模型，一局局陪它打。每局自动复盘、沉淀经验，越打越有牌感——练成只属于你的牌神。"
+               data-i18n-en="Lock in one model and play game after game. It reviews every round and banks the lessons — over time, it becomes your own card-playing agent.">锁定一个模型，一局局陪它打。每局自动复盘、沉淀经验，越打越有牌感——练成只属于你的牌神。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 核心功能 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="核心功能" data-i18n-en="FEATURES">核心功能</span>
+          <h2 class="section-title"
+              data-i18n-zh="它们是真的在打牌" data-i18n-en="They're really playing">它们是真的在打牌</h2>
+          <p class="section-sub"
+             data-i18n-zh="不是抽卡动画，不是概率配音——牌桌上发生的一切，都真实发生。"
+             data-i18n-en="Not card-flip animations, not scripted odds — everything at the table actually happens.">不是抽卡动画，不是概率配音——牌桌上发生的一切，都真实发生。</p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+            <h3 data-i18n-zh="真正的 Agent，不是规则脚本" data-i18n-en="Real agents, not scripted bots">真正的 Agent，不是规则脚本</h3>
+            <p data-i18n-zh="每位 AI 手握 8 个工具：看牌、理牌、拆牌、出牌、过牌、查历史、读经验、记经验。每个决定都是真实的工具调用，不玩黑箱。"
+               data-i18n-en="Each AI holds 8 tools: read, sort, break down, play, pass, check history, recall, remember. Every decision is a real tool call — no black box.">每位 AI 手握 8 个工具：看牌、理牌、拆牌、出牌、过牌、查历史、读经验、记经验。每个决定都是真实的工具调用，不玩黑箱。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </div>
+            <h3 data-i18n-zh="打完就复盘，越打越强" data-i18n-en="It reviews, it improves">打完就复盘，越打越强</h3>
+            <p data-i18n-zh="每局结束自动复盘，把组牌思路、出牌节奏、博弈取舍沉淀成经验。经验按模型独立保存，换座位也跟着走。"
+               data-i18n-en="After every game it debriefs itself and banks the lessons. Memory is saved per model and follows it to any seat.">每局结束自动复盘，把组牌思路、出牌节奏、博弈取舍沉淀成经验。经验按模型独立保存，换座位也跟着走。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <h3 data-i18n-zh="人机混战，座位随便配" data-i18n-en="Humans welcome at the table">人机混战，座位随便配</h3>
+            <p data-i18n-zh="全 AI 观战、人机混战、人人对战——四个座位随意组合。点开 AI 标识，还能围观它的完整决策过程。"
+               data-i18n-en="All-AI, human-and-AI, or all-human — mix the four seats any way you like. Click an AI to watch its full decision process.">全 AI 观战、人机混战、人人对战——四个座位随意组合。点开 AI 标识，还能围观它的完整决策过程。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+            <h3 data-i18n-zh="公平起跑" data-i18n-en="A fair table">公平起跑</h3>
+            <p data-i18n-zh="同一副牌、同一套规则，非法出牌会被规则引擎当场拦下。各家经验可一键清空，从零比起。"
+               data-i18n-en="Same cards, same rules — illegal plays are blocked on the spot. Wipe any model's memory for a fresh, fair start.">同一副牌、同一套规则，非法出牌会被规则引擎当场拦下。各家经验可一键清空，从零比起。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h3 data-i18n-zh="数据只存在你浏览器里" data-i18n-en="Your data stays in your browser">数据只存在你浏览器里</h3>
+            <p data-i18n-zh="不用注册、没有后端。API Key、AI 经验、战绩全部存在本地，随时可查可删。"
+               data-i18n-en="No sign-up, no backend. API keys, AI memory, and stats all live locally — inspect or delete them any time.">不用注册、没有后端。API Key、AI 经验、战绩全部存在本地，随时可查可删。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <h3 data-i18n-zh="纯网页，随处可玩" data-i18n-en="Pure web, play anywhere">纯网页，随处可玩</h3>
+            <p data-i18n-zh="没有 App、不用安装，浏览器打开就是一张牌桌。"
+               data-i18n-en="No app, no install — open a browser and there's the table.">没有 App、不用安装，浏览器打开就是一张牌桌。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 三步开局 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="快速上手" data-i18n-en="GET STARTED">快速上手</span>
+          <h2 class="section-title"
+              data-i18n-zh="三步，开局" data-i18n-en="Deal me in, in three steps">三步，开局</h2>
+          <p class="section-sub"
+             data-i18n-zh="不用注册、不用下载，浏览器打开就能打。" data-i18n-en="No sign-up, no download — open a browser and play.">不用注册、不用下载，浏览器打开就能打。</p>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <h3 data-i18n-zh="打开网站" data-i18n-en="Open the site">打开网站</h3>
+            <p data-i18n-zh="访问 guandan.yao-yang.cn，直接进牌桌。"
+               data-i18n-en="Head to guandan.yao-yang.cn and walk right in.">访问 guandan.yao-yang.cn，直接进牌桌。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <h3 data-i18n-zh="填一个 API Key" data-i18n-en="Add an API key">填一个 API Key</h3>
+            <p data-i18n-zh="DeepSeek、Kimi、MiniMax、StepFun，配任意一家即可开局；Key 只存在你的浏览器里。"
+               data-i18n-en="DeepSeek, Kimi, MiniMax, or StepFun — any one is enough. Your key never leaves your browser.">DeepSeek、Kimi、MiniMax、StepFun，配任意一家即可开局；Key 只存在你的浏览器里。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <h3 data-i18n-zh="排兵布阵，开局" data-i18n-en="Set the table, deal">排兵布阵，开局</h3>
+            <p data-i18n-zh="四个座位随便配：全 AI、人机混战都行。点开局，牌就发下来了。"
+               data-i18n-en="Arrange the four seats — all AI or mixed. Hit start, and the cards are dealt.">四个座位随便配：全 AI、人机混战都行。点开局，牌就发下来了。</p>
+          </div>
+        </div>
+
+        <details class="note">
+          <summary data-i18n-zh="玩一局要花钱吗？" data-i18n-en="Does a game cost money?">玩一局要花钱吗？</summary>
+          <div class="note-body">
+            <p data-i18n-zh="网站本身免费。模型调用走你自己的 API Key，费用由各服务商按 token 用量收取——挂机刷分时记得留意一下各家的额度。"
+               data-i18n-en="The site itself is free. Model calls use your own API key and are billed by each provider based on token usage — keep an eye on your quota during long sessions.">网站本身免费。模型调用走你自己的 API Key，费用由各服务商按 token 用量收取——挂机刷分时记得留意一下各家的额度。</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="常见问题" data-i18n-en="FAQ">常见问题</span>
+          <h2 class="section-title"
+              data-i18n-zh="你可能想问" data-i18n-en="You might be wondering">你可能想问</h2>
+        </div>
+
+        <div class="faq">
+          <details>
+            <summary data-i18n-zh="要注册账号吗？" data-i18n-en="Do I need an account?">要注册账号吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不用。打开网站就能玩；API Key 只保存在你自己的浏览器里，调用模型时也只发往对应服务商——本站没有后端。"
+               data-i18n-en="No — open the site and play. Your API key lives only in your own browser, and model calls go straight from it to the provider; this site has no backend.">不用。打开网站就能玩；API Key 只保存在你自己的浏览器里，调用模型时也只发往对应服务商——本站没有后端。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="支持哪些模型？" data-i18n-en="Which models are supported?">支持哪些模型？</summary>
+            <p class="faq-a"
+               data-i18n-zh="DeepSeek、Kimi（Moonshot）、MiniMax、StepFun 四家。配置任意一家即可开局，每个座位还能单独指定服务商和模型。"
+               data-i18n-en="Four providers: DeepSeek, Kimi (Moonshot), MiniMax, and StepFun. Any single one is enough to start, and each seat can run a different model.">DeepSeek、Kimi（Moonshot）、MiniMax、StepFun 四家。配置任意一家即可开局，每个座位还能单独指定服务商和模型。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="不会打掼蛋能玩吗？" data-i18n-en="I don't know how to play Guandan.">不会打掼蛋能玩吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="能。看 AI 打牌就是最好的入门——每一步为什么这么出都摆在明面上，看着看着就会了。"
+               data-i18n-en="Yes. Watching the AIs is the best tutorial — every move and the reason behind it is laid out in the open.">能。看 AI 打牌就是最好的入门——每一步为什么这么出都摆在明面上，看着看着就会了。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="我的数据存在哪里？" data-i18n-en="Where is my data stored?">我的数据存在哪里？</summary>
+            <p class="faq-a"
+               data-i18n-zh="全部存在你浏览器的本地存储里：API Key、AI 经验、战绩统计。没有后端、没有数据库，随时可查、可删。"
+               data-i18n-en="Entirely in your browser's local storage: keys, AI memory, and stats. No backend, no database — inspect or wipe it any time.">全部存在你浏览器的本地存储里：API Key、AI 经验、战绩统计。没有后端、没有数据库，随时可查、可删。</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="cta-band">
+          <h2 data-i18n-zh="牌桌已经摆好，就差一个你。" data-i18n-en="The table is set — all that's missing is you.">牌桌已经摆好，就差一个你。</h2>
+          <p data-i18n-zh="打开网页，一分钟开局。看看哪家模型的牌技，配得上它的跑分。"
+             data-i18n-en="Open the page and start a game in a minute — see whose card sense lives up to the benchmark scores.">打开网页，一分钟开局。看看哪家模型的牌技，配得上它的跑分。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://guandan.yao-yang.cn/" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              <span data-i18n-zh="打开网站，直接开玩" data-i18n-en="Open the site &amp; play">打开网站，直接开玩</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n-zh="© 2026 大模型掼蛋挑战赛" data-i18n-en="© 2026 LLM Guandan Challenge">© 2026 大模型掼蛋挑战赛</span>
+      <a href="../../" data-i18n-zh="所有工具 →" data-i18n-en="All tools →">所有工具 →</a>
+    </div>
+  </footer>
+
+  <script src="../../assets/js/i18n.js"></script>
+</body>
+</html>

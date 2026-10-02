@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n-zh="WatchYourClaude — 菜单栏里的 Claude Code 监控" data-i18n-en="WatchYourClaude — Claude Code monitoring in your menu bar">WatchYourClaude — 菜单栏里的 Claude Code 监控</title>
+  <meta name="description" data-i18n-zh="WatchYourClaude 把每个 Claude Code 会话的状态、实时 token 速度和消耗账单放进 macOS 菜单栏。免费、开源、数据不出本机。" data-i18n-en="WatchYourClaude puts every Claude Code session's status, live token speed, and usage ledger right into your macOS menu bar. Free, open source, data stays on your Mac.">
+  <link rel="icon" type="image/svg+xml" href="../../assets/img/watch-your-claude.svg">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container nav">
+      <a class="back-link" href="../../">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        <span data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</span>
+      </a>
+      <div class="nav-right">
+        <a class="nav-link hide-sm" href="https://github.com/smarty-kiki/watch_your_claude" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="https://github.com/smarty-kiki/watch_your_claude/releases/latest" target="_blank" rel="noopener"
+           data-i18n-zh="下载" data-i18n-en="Download">下载</a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <div class="container hero-inner">
+
+        <div class="hero-copy">
+          <div class="hero-app">
+            <img src="../../assets/img/watch-your-claude.svg" alt="WatchYourClaude">
+            <div>
+              <div class="hero-app-name">WatchYourClaude</div>
+              <div class="hero-app-cat" data-i18n-zh="macOS 菜单栏应用" data-i18n-en="macOS menu bar app">macOS 菜单栏应用</div>
+            </div>
+          </div>
+          <h1 class="hero-title"
+              data-i18n-zh="Claude Code 在忙什么？<br><em>看一眼菜单栏。</em>"
+              data-i18n-en="What's Claude Code up to?<br><em>Glance at your menu bar.</em>">Claude Code 在忙什么？<br><em>看一眼菜单栏。</em></h1>
+          <p class="hero-sub"
+             data-i18n-zh="WatchYourClaude 把每个 Claude Code 会话的状态、实时的 token 速度和消耗账单，都放进你的 macOS 菜单栏。不用切窗口、不用敲命令，一抬眼全知道。"
+             data-i18n-en="WatchYourClaude puts every Claude Code session's status, live token speed, and usage ledger right into your macOS menu bar. No window switching, no commands — one glance says it all.">WatchYourClaude 把每个 Claude Code 会话的状态、实时的 token 速度和消耗账单，都放进你的 macOS 菜单栏。不用切窗口、不用敲命令，一抬眼全知道。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/watch_your_claude/releases/latest" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
+              <span data-i18n-zh="免费下载" data-i18n-en="Download free">免费下载</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/smarty-kiki/watch_your_claude" target="_blank" rel="noopener"
+               data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
+          </div>
+          <div class="facts">
+            <span class="fact">macOS 14.0+</span>
+            <span class="fact" data-i18n-zh="免费 · MIT 开源" data-i18n-en="Free · MIT open source">免费 · MIT 开源</span>
+            <span class="fact" data-i18n-zh="数据不出本机" data-i18n-en="Data stays on your Mac">数据不出本机</span>
+            <span class="fact" data-i18n-zh="不占 Dock、不弹窗口" data-i18n-en="No Dock icon, no windows">不占 Dock、不弹窗口</span>
+          </div>
+        </div>
+
+        <!-- 菜单栏效果演示（纯装饰） -->
+        <div class="mock" aria-hidden="true">
+          <div class="mock-menubar">
+            <div class="mb-left">
+              <span class="mb-strong">WatchYourClaude</span>
+              <span class="mb-dim" data-i18n-zh="会话" data-i18n-en="Sessions">会话</span>
+              <span class="mb-dim" data-i18n-zh="图表" data-i18n-en="Charts">图表</span>
+            </div>
+            <div class="mb-right">
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 4.5C5 1.2 11 1.2 14.5 4.5"/><path d="M4 7.2C6 5.4 10 5.4 12 7.2"/><circle cx="8" cy="10" r="1.2" fill="currentColor" stroke="none"/></svg>
+              <svg width="22" height="12" viewBox="0 0 22 12" fill="none"><rect x="0.5" y="0.5" width="18" height="11" rx="3" stroke="currentColor" opacity="0.55"/><rect x="2" y="2" width="13" height="8" rx="1.5" fill="currentColor" opacity="0.6"/><path d="M20 4v4" stroke="currentColor" opacity="0.55" stroke-linecap="round" stroke-width="1.6"/></svg>
+              <span class="mb-time">10:24</span>
+            </div>
+          </div>
+
+          <div class="mock-panel">
+            <div class="mp-head">
+              <span class="mp-title" data-i18n-zh="Claude Code 监控" data-i18n-en="Claude Code monitor">Claude Code 监控</span>
+              <span class="mp-live"><i></i>LIVE</span>
+            </div>
+            <ul class="mp-sessions">
+              <li>
+                <i class="dot busy"></i>
+                <span class="mp-proj">smarty-web</span>
+                <span class="mp-status" data-i18n-zh="忙碌中" data-i18n-en="Busy">忙碌中</span>
+              </li>
+              <li>
+                <i class="dot idle"></i>
+                <span class="mp-proj">blog-api</span>
+                <span class="mp-status" data-i18n-zh="空闲" data-i18n-en="Idle">空闲</span>
+              </li>
+              <li>
+                <i class="dot off"></i>
+                <span class="mp-proj">docs-site</span>
+                <span class="mp-status" data-i18n-zh="未活跃" data-i18n-en="Inactive">未活跃</span>
+              </li>
+            </ul>
+
+            <div class="mp-block">
+              <div class="mp-row">
+                <span class="mp-label" data-i18n-zh="实时速度" data-i18n-en="Live throughput">实时速度</span>
+                <span class="mp-value">36 <small>tok/s</small></span>
+              </div>
+              <svg class="mp-spark" viewBox="0 0 280 56" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="wycSpark" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#FF6B35" stop-opacity="0.35"/>
+                    <stop offset="1" stop-color="#FF6B35" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0,44 L20,40 L40,42 L60,30 L80,34 L100,22 L120,26 L140,14 L160,20 L180,10 L200,18 L220,12 L240,22 L260,16 L280,20 L280,56 L0,56 Z" fill="url(#wycSpark)" stroke="none"/>
+                <path d="M0,44 L20,40 L40,42 L60,30 L80,34 L100,22 L120,26 L140,14 L160,20 L180,10 L200,18 L220,12 L240,22 L260,16 L280,20" fill="none" stroke="#FF6B35" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+
+            <div class="mp-block">
+              <div class="mp-row">
+                <span class="mp-label" data-i18n-zh="近 3 小时消耗" data-i18n-en="Last 3 hours">近 3 小时消耗</span>
+                <span class="mp-value">128k <small>tokens</small></span>
+              </div>
+              <svg class="mp-bars" viewBox="0 0 280 48" preserveAspectRatio="none">
+                <rect x="0"   y="36" width="14" height="12" rx="3" fill="#3b4463"/>
+                <rect x="20"  y="30" width="14" height="18" rx="3" fill="#3b4463"/>
+                <rect x="40"  y="39" width="14" height="9"  rx="3" fill="#3b4463"/>
+                <rect x="60"  y="26" width="14" height="22" rx="3" fill="#3b4463"/>
+                <rect x="80"  y="32" width="14" height="16" rx="3" fill="#3b4463"/>
+                <rect x="100" y="20" width="14" height="28" rx="3" fill="#3b4463"/>
+                <rect x="120" y="28" width="14" height="20" rx="3" fill="#3b4463"/>
+                <rect x="140" y="34" width="14" height="14" rx="3" fill="#3b4463"/>
+                <rect x="160" y="24" width="14" height="24" rx="3" fill="#3b4463"/>
+                <rect x="180" y="16" width="14" height="32" rx="3" fill="#3b4463"/>
+                <rect x="200" y="30" width="14" height="18" rx="3" fill="#3b4463"/>
+                <rect x="220" y="10" width="14" height="38" rx="3" fill="#FF6B35"/>
+                <rect x="240" y="22" width="14" height="26" rx="3" fill="#3b4463"/>
+                <rect x="260" y="18" width="14" height="30" rx="3" fill="#3b4463"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 痛点 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="为什么做它" data-i18n-en="WHY">为什么做它</span>
+          <h2 class="section-title"
+              data-i18n-zh="用 Claude Code 的人，都懂" data-i18n-en="If you use Claude Code, you know">用 Claude Code 的人，都懂</h2>
+          <p class="section-sub"
+             data-i18n-zh="工具跑得很快，但你的注意力总被它牵着走。" data-i18n-en="The tool is fast — but your attention keeps getting pulled back to it.">工具跑得很快，但你的注意力总被它牵着走。</p>
+        </div>
+
+        <div class="pain-grid">
+          <div class="pain-card">
+            <h3 data-i18n-zh="「它是在思考，还是卡住了？」" data-i18n-en="&ldquo;Is it thinking, or stuck?&rdquo;">「它是在思考，还是卡住了？」</h3>
+            <p data-i18n-zh="盯着终端干等，分不清该继续等，还是该出手干预。"
+               data-i18n-en="You stare at the terminal, unable to tell whether to wait or step in.">盯着终端干等，分不清该继续等，还是该出手干预。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="「切走之后，跑完了也不知道」" data-i18n-en="&ldquo;You step away, and it finishes in silence&rdquo;">「切走之后，跑完了也不知道」</h3>
+            <p data-i18n-zh="只能时不时回头瞄一眼终端——回个消息都不踏实。"
+               data-i18n-en="So you keep peeking back at the terminal — even replying to a message feels uneasy.">只能时不时回头瞄一眼终端——回个消息都不踏实。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="「月底一看，token 都烧哪儿了？」" data-i18n-en="&ldquo;The month ends. Where did the tokens go?&rdquo;">「月底一看，token 都烧哪儿了？」</h3>
+            <p data-i18n-zh="哪个项目花得最多、哪个模型是大头，完全没有概念。"
+               data-i18n-en="Which project spent the most, which model dominated — no idea.">哪个项目花得最多、哪个模型是大头，完全没有概念。</p>
+          </div>
+        </div>
+
+        <p class="pain-transition"
+           data-i18n-zh="WatchYourClaude 把这三个问题，都变成了<em>一眼就能回答的题</em>。"
+           data-i18n-en="WatchYourClaude turns all three into questions <em>one glance can answer</em>.">WatchYourClaude 把这三个问题，都变成了<em>一眼就能回答的题</em>。</p>
+      </div>
+    </section>
+
+    <!-- ============ 功能 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="核心功能" data-i18n-en="FEATURES">核心功能</span>
+          <h2 class="section-title"
+              data-i18n-zh="菜单栏里的监控中心" data-i18n-en="A monitoring hub in your menu bar">菜单栏里的监控中心</h2>
+          <p class="section-sub"
+             data-i18n-zh="不占 Dock、不弹窗口，安静地待在菜单栏里，随时待命。"
+             data-i18n-en="No Dock icon, no windows — it lives quietly in your menu bar, always ready.">不占 Dock、不弹窗口，安静地待在菜单栏里，随时待命。</p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <h3 data-i18n-zh="每个会话，一目了然" data-i18n-en="Every session, at a glance">每个会话，一目了然</h3>
+            <p data-i18n-zh="正在运行的每个 Claude Code 会话都列在这里：忙还是闲、属于哪个项目。菜单栏图标本身就是状态灯——忙碌泛绿、空闲泛蓝、无活动是灰。"
+               data-i18n-en="Every running Claude Code session shows up in the list: busy or idle, and for which project. The menu bar icon itself is the status light — green when busy, blue when idle, gray when quiet.">正在运行的每个 Claude Code 会话都列在这里：忙还是闲、属于哪个项目。菜单栏图标本身就是状态灯——忙碌泛绿、空闲泛蓝、无活动是灰。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="2 12 6 12 9 5 14 19 17 12 22 12"/></svg>
+            </div>
+            <h3 data-i18n-zh="实时速度曲线" data-i18n-en="Live speed curve">实时速度曲线</h3>
+            <p data-i18n-zh="每秒吞多少 token、吐多少 token，实时画给你看。它跑得够不够快，曲线说了算。"
+               data-i18n-en="Tokens in and out per second, charted in real time. Whether it's running at full speed — the curve tells you.">每秒吞多少 token、吐多少 token，实时画给你看。它跑得够不够快，曲线说了算。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="20" x2="6" y2="12"/><line x1="12" y1="20" x2="12" y2="5"/><line x1="18" y1="20" x2="18" y2="9"/><line x1="3" y1="22" x2="21" y2="22"/></svg>
+            </div>
+            <h3 data-i18n-zh="token 消耗账本" data-i18n-en="A ledger for your tokens">token 消耗账本</h3>
+            <p data-i18n-zh="最近 3 小时的消耗按 10 分钟一组画成柱状图，还能按项目和模型拆开看。哪个项目烧得最凶，清清楚楚。"
+               data-i18n-en="The last 3 hours of usage, bucketed into 10-minute bars and broken down by project and model. See exactly which project burns the most.">最近 3 小时的消耗按 10 分钟一组画成柱状图，还能按项目和模型拆开看。哪个项目烧得最凶，清清楚楚。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+            </div>
+            <h3 data-i18n-zh="干完活儿，叫你一声" data-i18n-en="It taps you when it's done">干完活儿，叫你一声</h3>
+            <p data-i18n-zh="开启通知后，会话一从忙碌转为空闲就响铃提示。放心去回消息、泡杯咖啡，活儿干完了它叫你。"
+               data-i18n-en="Turn on notifications and get a chime the moment a session goes from busy to idle. Switch away with confidence — it'll call you back.">开启通知后，会话一从忙碌转为空闲就响铃提示。放心去回消息、泡杯咖啡，活儿干完了它叫你。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+            <h3 data-i18n-zh="数据不出你的 Mac" data-i18n-en="Your data stays on your Mac">数据不出你的 Mac</h3>
+            <p data-i18n-zh="所有信息都只来自你本机的 Claude Code 会话记录，不上传、不收集、不偷偷联网。放心用。"
+               data-i18n-en="Everything shown comes from Claude Code's local session records on your machine. Nothing uploaded, nothing collected, no phoning home.">所有信息都只来自你本机的 Claude Code 会话记录，不上传、不收集、不偷偷联网。放心用。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="8 6 2 12 8 18"/><polyline points="16 6 22 12 16 18"/></svg>
+            </div>
+            <h3 data-i18n-zh="免费，而且开源" data-i18n-en="Free, and open source">免费，而且开源</h3>
+            <p data-i18n-zh="MIT 协议，源码全部公开。想研究实现、想自己魔改，仓库随时欢迎。"
+               data-i18n-en="MIT licensed with the full source on GitHub. Study it, tweak it, make it yours — the repo is right there.">MIT 协议，源码全部公开。想研究实现、想自己魔改，仓库随时欢迎。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 三步上手 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="快速上手" data-i18n-en="GET STARTED">快速上手</span>
+          <h2 class="section-title"
+              data-i18n-zh="三步，开始用" data-i18n-en="Up and running in three steps">三步，开始用</h2>
+          <p class="section-sub"
+             data-i18n-zh="不用配置、不用登录，下载就能跑。" data-i18n-en="No setup, no sign-in — download and go.">不用配置、不用登录，下载就能跑。</p>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <h3 data-i18n-zh="下载最新版" data-i18n-en="Grab the latest release">下载最新版</h3>
+            <p data-i18n-zh="到 GitHub Releases 下载 WatchYourClaude-x.x.zip，解压。"
+               data-i18n-en="Download WatchYourClaude-x.x.zip from GitHub Releases and unzip it.">到 GitHub Releases 下载 WatchYourClaude-x.x.zip，解压。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <h3 data-i18n-zh="拖进「应用程序」" data-i18n-en="Drag it into Applications">拖进「应用程序」</h3>
+            <p data-i18n-zh="和其他 Mac 应用一样，拖进去就行。"
+               data-i18n-en="Just like any other Mac app — drag and drop.">和其他 Mac 应用一样，拖进去就行。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <h3 data-i18n-zh="打开，它就住进菜单栏" data-i18n-en="Open it — it moves into your menu bar">打开，它就住进菜单栏</h3>
+            <p data-i18n-zh="菜单栏上多了一枚会变色的小图标，点开就是监控面板。"
+               data-i18n-en="A little color-changing icon appears in the menu bar. Click it, and there's your dashboard.">菜单栏上多了一枚会变色的小图标，点开就是监控面板。</p>
+          </div>
+        </div>
+
+        <details class="note">
+          <summary data-i18n-zh="打开时提示「无法验证开发者」？" data-i18n-en="macOS says it &ldquo;cannot verify the developer&rdquo;?">打开时提示「无法验证开发者」？</summary>
+          <div class="note-body">
+            <p data-i18n-zh="这个应用没有 Apple 开发者证书、没有做公证，所以首次打开会被 Gatekeeper 拦一下。放行一次即可："
+               data-i18n-en="The app isn't notarized (no Apple Developer certificate), so Gatekeeper stops the first launch. You only need to allow it once:">这个应用没有 Apple 开发者证书、没有做公证，所以首次打开会被 Gatekeeper 拦一下。放行一次即可：</p>
+            <ol>
+              <li data-i18n-zh="先双击打开一次，macOS 会提示无法验证开发者；"
+                  data-i18n-en="Try opening the app once — macOS will say it cannot verify the developer.">先双击打开一次，macOS 会提示无法验证开发者；</li>
+              <li data-i18n-zh="打开「系统设置 → 隐私与安全性」，在底部找到被拦的提示，点「仍要打开」。"
+                  data-i18n-en="Open System Settings → Privacy &amp; Security, find the blocked message, and click Open Anyway.">打开「系统设置 → 隐私与安全性」，在底部找到被拦的提示，点「仍要打开」。</li>
+            </ol>
+            <p data-i18n-zh="或者，在终端执行一次这条命令，之后就能正常打开："
+               data-i18n-en="Or run this once in Terminal, then open normally:">或者，在终端执行一次这条命令，之后就能正常打开：</p>
+            <code>xattr -dr com.apple.quarantine /Applications/WatchYourClaude.app</code>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="常见问题" data-i18n-en="FAQ">常见问题</span>
+          <h2 class="section-title"
+              data-i18n-zh="你可能想问" data-i18n-en="You might be wondering">你可能想问</h2>
+        </div>
+
+        <div class="faq">
+          <details>
+            <summary data-i18n-zh="要花钱吗？" data-i18n-en="Does it cost anything?">要花钱吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不花。WatchYourClaude 免费使用，MIT 协议开源，也可以自己下载源码编译。"
+               data-i18n-en="No. WatchYourClaude is free to use, MIT-licensed, and you can always build it from source yourself.">不花。WatchYourClaude 免费使用，MIT 协议开源，也可以自己下载源码编译。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="我的数据安全吗？" data-i18n-en="Is my data safe?">我的数据安全吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="安全。应用只读取你电脑上 Claude Code 的本地会话记录，不上传任何数据，也不收集使用信息。"
+               data-i18n-en="Yes. The app only reads Claude Code's local session records on your machine — nothing is uploaded and nothing is collected.">安全。应用只读取你电脑上 Claude Code 的本地会话记录，不上传任何数据，也不收集使用信息。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="支持哪些系统？" data-i18n-en="Which systems are supported?">支持哪些系统？</summary>
+            <p class="faq-a"
+               data-i18n-zh="macOS 14.0 及以上版本。"
+               data-i18n-en="macOS 14.0 or later.">macOS 14.0 及以上版本。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="它会拖慢我的 Mac 吗？" data-i18n-en="Will it slow my Mac down?">它会拖慢我的 Mac 吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不会。它是个轻量的菜单栏应用，安静地常驻角落，你几乎感觉不到它的存在。"
+               data-i18n-en="No. It's a lightweight menu bar app that sits quietly in the corner — you'll barely notice it's there.">不会。它是个轻量的菜单栏应用，安静地常驻角落，你几乎感觉不到它的存在。</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="cta-band">
+          <h2 data-i18n-zh="现在，把 Claude Code 看得清清楚楚" data-i18n-en="See your Claude Code clearly, starting now">现在，把 Claude Code 看得清清楚楚</h2>
+          <p data-i18n-zh="免费下载，一分钟装好。下一个长任务跑起来的时候，你就再也不用盯着终端了。"
+             data-i18n-en="Free to download, a minute to install. The next long task you run, you won't be staring at the terminal.">免费下载，一分钟装好。下一个长任务跑起来的时候，你就再也不用盯着终端了。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/watch_your_claude/releases/latest" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
+              <span data-i18n-zh="免费下载" data-i18n-en="Download free">免费下载</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/smarty-kiki/watch_your_claude" target="_blank" rel="noopener"
+               data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n-zh="© 2026 WatchYourClaude · 基于 MIT 协议开源" data-i18n-en="© 2026 WatchYourClaude · Open source under the MIT license">© 2026 WatchYourClaude · 基于 MIT 协议开源</span>
+      <span>
+        <a href="../../" data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/smarty-kiki/watch_your_claude" target="_blank" rel="noopener">GitHub</a>
+      </span>
+    </div>
+  </footer>
+
+  <script src="../../assets/js/i18n.js"></script>
+</body>
+</html>

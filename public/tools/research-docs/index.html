@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n-zh="研和讨 — 24 小时替你调研和讨论的数字专家团队" data-i18n-en="Yanhetao — a digital research crew that works around the clock">研和讨 — 24 小时替你调研和讨论的数字专家团队</title>
+  <meta name="description" data-i18n-zh="研和讨：知识库 + 数字伙伴平台。为课题组建数字专家团队，它们自动调研、交叉讨论、整理成文档，7×24 不停歇。免费注册，送 100 万积分。" data-i18n-en="Yanhetao: knowledge base + digital crew. Assemble a team of AI experts that researches, debates, and writes it up — around the clock. Free to start, with 1M credits on sign-up.">
+  <link rel="icon" type="image/png" href="../../assets/img/research-docs.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    /* ===== 任务执行演示（仅本页使用） ===== */
+    .rh-task {
+      position: absolute;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(420px, 94%);
+      background: rgba(19, 23, 42, 0.92);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      padding: 20px 22px 22px;
+    }
+    .rh-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+      border-radius: 999px;
+      padding: 4px 12px;
+      margin-bottom: 12px;
+    }
+    .rh-status i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: rhpulse 1.6s ease-in-out infinite;
+    }
+    @keyframes rhpulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .35; transform: scale(.8); }
+    }
+    .rh-title { font-size: 17px; font-weight: 800; line-height: 1.4; margin-bottom: 16px; }
+    .rh-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 9px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .rh-mark {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      margin-top: 1px;
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--faint);
+      border: 1px solid var(--border);
+    }
+    .rh-step.done .rh-mark {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+      border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    }
+    .rh-step.doing .rh-mark {
+      color: var(--accent);
+      border-color: var(--accent);
+      animation: rhpulse 1.6s ease-in-out infinite;
+    }
+    .rh-who { font-weight: 700; color: var(--text); margin-right: 6px; }
+    .rh-what { color: var(--muted); }
+    .rh-step.doing .rh-what { color: var(--text); }
+    .rh-timer {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--faint);
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+    }
+    .rh-mail {
+      position: absolute;
+      right: 4%;
+      bottom: 6%;
+      max-width: 240px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--muted);
+      background: rgba(19, 23, 42, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 9px 14px;
+      box-shadow: var(--shadow);
+      animation: rhdrift 3.6s ease-in-out infinite;
+    }
+    .rh-mail strong { color: var(--accent); }
+    @keyframes rhdrift {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-6px); }
+    }
+    @media (max-width: 560px) {
+      .rh-task { top: 44px; padding: 16px 16px 18px; }
+      .rh-mail { display: none; }
+    }
+  </style>
+</head>
+<body style="--accent: #4c8ad8; --btn-text: #ffffff;">
+
+  <header class="site-header">
+    <div class="container nav">
+      <a class="back-link" href="../../">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        <span data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</span>
+      </a>
+      <div class="nav-right">
+        <a class="btn btn-primary btn-sm" href="https://workshop.yao-yang.cn/" target="_blank" rel="noopener"
+           data-i18n-zh="打开网站" data-i18n-en="Open site">打开网站</a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <div class="container hero-inner">
+
+        <div class="hero-copy">
+          <div class="hero-app">
+            <img src="../../assets/img/research-docs.png" alt="研和讨">
+            <div>
+              <div class="hero-app-name" data-i18n-zh="研和讨" data-i18n-en="Yanhetao">研和讨</div>
+              <div class="hero-app-cat" data-i18n-zh="网页应用 · 打开即用" data-i18n-en="Web app · Right in your browser">网页应用 · 打开即用</div>
+            </div>
+          </div>
+          <h1 class="hero-title"
+              data-i18n-zh="一支 24 小时在岗的<br><em>数字调研团队。</em>"
+              data-i18n-en="A research crew that works<br><em>around the clock.</em>">一支 24 小时在岗的<br><em>数字调研团队。</em></h1>
+          <p class="hero-sub"
+             data-i18n-zh="研和讨是一个「知识库 + 数字伙伴」平台：为课题组建各有所长的数字专家，它们自动搜集、交叉讨论、整理成文档，7×24 不停歇——你只管下达方向、审阅结论。"
+             data-i18n-en="Yanhetao is a knowledge base with a built-in crew: assemble AI experts for each project, and they research, cross-examine, and write it all up — 24/7. You set the direction and review the conclusions.">研和讨是一个「知识库 + 数字伙伴」平台：为课题组建各有所长的数字专家，它们自动搜集、交叉讨论、整理成文档，7×24 不停歇——你只管下达方向、审阅结论。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://workshop.yao-yang.cn/" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              <span data-i18n-zh="打开研和讨" data-i18n-en="Open Yanhetao">打开研和讨</span>
+            </a>
+          </div>
+          <div class="facts">
+            <span class="fact" data-i18n-zh="免费开始" data-i18n-en="Free to start">免费开始</span>
+            <span class="fact" data-i18n-zh="注册送 100 万积分" data-i18n-en="1M credits on sign-up">注册送 100 万积分</span>
+            <span class="fact" data-i18n-zh="7×24 自动运转" data-i18n-en="Runs 24/7">7×24 自动运转</span>
+            <span class="fact" data-i18n-zh="无需安装" data-i18n-en="No install needed">无需安装</span>
+          </div>
+        </div>
+
+        <!-- 任务执行演示（纯装饰） -->
+        <div class="mock" aria-hidden="true">
+          <div class="rh-task">
+            <span class="rh-status"><i></i><span data-i18n-zh="任务执行中" data-i18n-en="TASK RUNNING">任务执行中</span></span>
+            <div class="rh-title" data-i18n-zh="「调研腾讯公司，写份报告放进 /行业研究」" data-i18n-en="&ldquo;Research Tencent, drop the report into /Industry&rdquo;">「调研腾讯公司，写份报告放进 /行业研究」</div>
+            <div class="rh-step done">
+              <span class="rh-mark">✓</span>
+              <span><span class="rh-who" data-i18n-zh="行业分析师" data-i18n-en="Industry Analyst">行业分析师</span><span class="rh-what" data-i18n-zh="搜集公开资料与最新动态" data-i18n-en="gathered public filings and news">搜集公开资料与最新动态</span></span>
+            </div>
+            <div class="rh-step doing">
+              <span class="rh-mark">2</span>
+              <span><span class="rh-who">@巴菲特</span><span class="rh-what" data-i18n-zh="正在交叉论证投资观点…" data-i18n-en="is cross-examining the thesis…">正在交叉论证投资观点…</span></span>
+            </div>
+            <div class="rh-step">
+              <span class="rh-mark">3</span>
+              <span><span class="rh-who" data-i18n-zh="知识助手" data-i18n-en="Assistant">知识助手</span><span class="rh-what" data-i18n-zh="撰写《腾讯调研报告》写入知识库" data-i18n-en="will write the report into the knowledge base">撰写《腾讯调研报告》写入知识库</span></span>
+            </div>
+            <div class="rh-timer" data-i18n-zh="已执行 6 分 32 秒 · 完成后站内信通知你" data-i18n-en="6m 32s elapsed · you'll get a message when it's done">已执行 6 分 32 秒 · 完成后站内信通知你</div>
+          </div>
+          <span class="rh-mail" data-i18n-zh="📨 <strong>任务完成</strong>：报告已写好，放进 /行业研究" data-i18n-en="📨 <strong>Done</strong>: report written into /Industry">📨 <strong>任务完成</strong>：报告已写好，放进 /行业研究</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 为什么 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="为什么做它" data-i18n-en="WHY">为什么做它</span>
+          <h2 class="section-title"
+              data-i18n-zh="调研这件事，最费的是人。" data-i18n-en="Research is expensive — for you.">调研这件事，最费的是人。</h2>
+          <p class="section-sub"
+             data-i18n-zh="真正该花时间的，是判断和决策，不是翻网页。"
+             data-i18n-en="Your judgment is the valuable part — not the tab-hopping.">真正该花时间的，是判断和决策，不是翻网页。</p>
+        </div>
+
+        <div class="pain-grid">
+          <div class="pain-card">
+            <h3 data-i18n-zh="「一搜就是大半天」" data-i18n-en="&ldquo;Half a day, one question&rdquo;">「一搜就是大半天」</h3>
+            <p data-i18n-zh="一个问题翻十几个网页，看完标题还没找到重点，时间全耗在「找」上。"
+               data-i18n-en="A dozen tabs deep and still no answer — most of the time goes into the searching, not the thinking.">一个问题翻十几个网页，看完标题还没找到重点，时间全耗在「找」上。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="「存了，但找不到」" data-i18n-en="&ldquo;Saved it. Somewhere.&rdquo;">「存了，但找不到」</h3>
+            <p data-i18n-zh="收藏夹、网盘、备忘录各存一点，真要用时两眼一抹黑，只好重新搜一遍。"
+               data-i18n-en="Bookmarks here, notes there, cloud drive everywhere — and when you need it, you start over.">收藏夹、网盘、备忘录各存一点，真要用时两眼一抹黑，只好重新搜一遍。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="「整理完，就过时了」" data-i18n-en="&ldquo;Up to date. Until Tuesday.&rdquo;">「整理完，就过时了」</h3>
+            <p data-i18n-zh="辛苦整理的内容，过几天就追不上新动态——资料是死的，世界是活的。"
+               data-i18n-en="The moment your write-up is done, the world moves on. Static notes, dynamic world.">辛苦整理的内容，过几天就追不上新动态——资料是死的，世界是活的。</p>
+          </div>
+        </div>
+
+        <p class="pain-transition"
+           data-i18n-zh="研和讨把「找资料、做讨论、写文档」交给一支<em>不下班的团队</em>。"
+           data-i18n-en="Yanhetao hands the digging, debating, and writing to a crew that <em>never clocks out</em>.">研和讨把「找资料、做讨论、写文档」交给一支<em>不下班的团队</em>。</p>
+      </div>
+    </section>
+
+    <!-- ============ 核心功能 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="核心功能" data-i18n-en="FEATURES">核心功能</span>
+          <h2 class="section-title"
+              data-i18n-zh="你一句话，它们一整套" data-i18n-en="One sentence from you, a whole system behind it">你一句话，它们一整套</h2>
+          <p class="section-sub"
+             data-i18n-zh="把一件课题从「想了解」推进到「有报告」，中间的活全自动。"
+             data-i18n-en="From &ldquo;I should look into this&rdquo; to &ldquo;here's the report&rdquo; — everything in between is automated.">把一件课题从「想了解」推进到「有报告」，中间的活全自动。</p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            </div>
+            <h3 data-i18n-zh="一句话，建队开工" data-i18n-en="One line, team assembled">一句话，建队开工</h3>
+            <p data-i18n-zh="对页面底部的知识助手说一句「调研 XX，写份报告」，它自动拆成执行计划：谁查资料、谁论证、谁成稿，各就各位。"
+               data-i18n-en="Tell the built-in assistant &ldquo;research X, write it up&rdquo; — it splits the job into a plan: who digs, who debates, who writes. Everyone takes a post.">对页面底部的知识助手说一句「调研 XX，写份报告」，它自动拆成执行计划：谁查资料、谁论证、谁成稿，各就各位。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            </div>
+            <h3 data-i18n-zh="数字伙伴，随你捏" data-i18n-en="Crew members, made to order">数字伙伴，随你捏</h3>
+            <p data-i18n-zh="人设和擅长领域都由你定，公众人物还能一键自动生成。之后 @一下名字，活儿就派出去了。"
+               data-i18n-en="Define each member's persona and specialty yourself — famous figures get auto-filled. Then just @ them to hand over work.">人设和擅长领域都由你定，公众人物还能一键自动生成。之后 @一下名字，活儿就派出去了。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <h3 data-i18n-zh="开一场没人缺席的讨论会" data-i18n-en="Meetings where nobody zones out">开一场没人缺席的讨论会</h3>
+            <p data-i18n-zh="指定主持人和参与伙伴，各方轮流发言、互相交锋，最后由主持人收束成一份结论报告。"
+               data-i18n-en="Name a chair and the participants: each speaks in turn, challenges the others, and the chair wraps it into one conclusion.">指定主持人和参与伙伴，各方轮流发言、互相交锋，最后由主持人收束成一份结论报告。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <h3 data-i18n-zh="定时任务，自动盯梢" data-i18n-en="On a schedule, forever">定时任务，自动盯梢</h3>
+            <p data-i18n-zh="「每周一调研一下竞品」——需求里带个时间词就行。到点自动开工，成果写回知识库，站内信汇报。"
+               data-i18n-en="&ldquo;Check my competitors every Monday&rdquo; — put a time in the sentence and it becomes a recurring job. Results land in your knowledge base, with a message to report.">「每周一调研一下竞品」——需求里带个时间词就行。到点自动开工，成果写回知识库，站内信汇报。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <h3 data-i18n-zh="成果沉淀成知识库" data-i18n-en="Everything lands in your base">成果沉淀成知识库</h3>
+            <p data-i18n-zh="文件夹五层嵌套，文档支持 md / html / csv 三种格式；每次创建、修改、移动都留档，随时可查。"
+               data-i18n-en="Five levels of folders, documents in md / html / csv, and a full history of every change — nothing gets lost.">文件夹五层嵌套，文档支持 md / html / csv 三种格式；每次创建、修改、移动都留档，随时可查。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <h3 data-i18n-zh="干活全程，实时直播" data-i18n-en="Watch them work, live">干活全程，实时直播</h3>
+            <p data-i18n-zh="每一步由谁执行、它的思考过程、调用了什么工具、产出了什么，全部实时流式展示，任务跑完还有汇报。"
+               data-i18n-en="Every step streams live: who's on it, what it's thinking, which tools it used. When the task ends, the report lands in your inbox.">每一步由谁执行、它的思考过程、调用了什么工具、产出了什么，全部实时流式展示，任务跑完还有汇报。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 三步上手 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="快速上手" data-i18n-en="GET STARTED">快速上手</span>
+          <h2 class="section-title"
+              data-i18n-zh="三步，开工" data-i18n-en="Up and running in three steps">三步，开工</h2>
+          <p class="section-sub"
+             data-i18n-zh="不用安装任何东西，浏览器打开就能指挥团队。"
+             data-i18n-en="Nothing to install — open a browser and start delegating.">不用安装任何东西，浏览器打开就能指挥团队。</p>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <h3 data-i18n-zh="注册，领积分" data-i18n-en="Sign up, grab credits">注册，领积分</h3>
+            <p data-i18n-zh="打开 workshop.yao-yang.cn 免费注册，100 万积分到账，够团队先跑很多轮。"
+               data-i18n-en="Open workshop.yao-yang.cn, register for free, and start with 1,000,000 credits — plenty of runway.">打开 workshop.yao-yang.cn 免费注册，100 万积分到账，够团队先跑很多轮。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <h3 data-i18n-zh="捏几个数字伙伴" data-i18n-en="Assemble your crew">捏几个数字伙伴</h3>
+            <p data-i18n-zh="一个查资料的、一个唱反调的、一个写报告的——人设和擅长领域你说了算。"
+               data-i18n-en="A researcher, a devil's advocate, a writer — you define who they are and what they're good at.">一个查资料的、一个唱反调的、一个写报告的——人设和擅长领域你说了算。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <h3 data-i18n-zh="说一句话，等通知" data-i18n-en="Say the word, wait for the ping">说一句话，等通知</h3>
+            <p data-i18n-zh="把课题交代给知识助手，剩下的交给团队。跑完了，报告已经躺在知识库里。"
+               data-i18n-en="Brief the assistant, then let the crew run. When it's done, the report is already in your knowledge base.">把课题交代给知识助手，剩下的交给团队。跑完了，报告已经躺在知识库里。</p>
+          </div>
+        </div>
+
+        <details class="note">
+          <summary data-i18n-zh="积分是怎么算的？" data-i18n-en="How do credits work?">积分是怎么算的？</summary>
+          <div class="note-body">
+            <p data-i18n-zh="积分只在 AI 干活时消耗（按用量折算，约 100 token 记 1 积分），注册即送 100 万。浏览知识库、阅读报告、安排任务都不消耗。"
+               data-i18n-en="Credits are only spent when the AI actually works (roughly 100 tokens = 1 credit), and you start with 1,000,000. Browsing, reading reports, and scheduling tasks are all free.">积分只在 AI 干活时消耗（按用量折算，约 100 token 记 1 积分），注册即送 100 万。浏览知识库、阅读报告、安排任务都不消耗。</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="常见问题" data-i18n-en="FAQ">常见问题</span>
+          <h2 class="section-title"
+              data-i18n-zh="你可能想问" data-i18n-en="You might be wondering">你可能想问</h2>
+        </div>
+
+        <div class="faq">
+          <details>
+            <summary data-i18n-zh="「数字伙伴」到底是什么？" data-i18n-en="What exactly is a &ldquo;digital companion&rdquo;?">「数字伙伴」到底是什么？</summary>
+            <p class="faq-a"
+               data-i18n-zh="可以理解成你的虚拟员工：有名字、有人设、有擅长的领域。@它就干活，还能组队协作、开会讨论，甚至让「巴菲特」来帮你论证投资观点。"
+               data-i18n-en="Think of them as virtual teammates: a name, a persona, a specialty. @ them and they work — solo, in teams, or in debates. You can even have &ldquo;Buffett&rdquo; stress-test an investment thesis.">可以理解成你的虚拟员工：有名字、有人设、有擅长的领域。@它就干活，还能组队协作、开会讨论，甚至让「巴菲特」来帮你论证投资观点。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="要花钱吗？" data-i18n-en="Does it cost money?">要花钱吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="免费注册，注册即送 100 万积分，AI 执行任务时按用量消耗；逛知识库、读报告、安排任务统统不扣。"
+               data-i18n-en="Registration is free and comes with 1,000,000 credits, consumed only when AI runs tasks. Browsing the knowledge base, reading reports, and scheduling tasks cost nothing.">免费注册，注册即送 100 万积分，AI 执行任务时按用量消耗；逛知识库、读报告、安排任务统统不扣。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="它们的讨论靠谱吗？" data-i18n-en="Can I trust their debates?">它们的讨论靠谱吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="讨论只看事实和逻辑，不被立场和利害关系绑架；观点交叉论证，结论由你审阅把关——AI 负责跑腿，拍板的永远是你。"
+               data-i18n-en="The debates stick to facts and logic — no agendas, no hurt feelings. Views get cross-examined, and you make the final call: AI does the legwork, you sign off.">讨论只看事实和逻辑，不被立场和利害关系绑架；观点交叉论证，结论由你审阅把关——AI 负责跑腿，拍板的永远是你。</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="cta-band">
+          <h2 data-i18n-zh="组建你的第一支专家团队。" data-i18n-en="Assemble your first crew.">组建你的第一支专家团队。</h2>
+          <p data-i18n-zh="免费开始，让调研和讨论自己跑起来，把时间留给判断。"
+             data-i18n-en="Free to start — let the research run itself and save your time for judgment.">免费开始，让调研和讨论自己跑起来，把时间留给判断。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://workshop.yao-yang.cn/" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              <span data-i18n-zh="打开研和讨" data-i18n-en="Open Yanhetao">打开研和讨</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n-zh="© 2026 研和讨 · 让调研自己跑" data-i18n-en="© 2026 Yanhetao · research that runs itself">© 2026 研和讨 · 让调研自己跑</span>
+      <a href="../../" data-i18n-zh="所有工具 →" data-i18n-en="All tools →">所有工具 →</a>
+    </div>
+  </footer>
+
+  <script src="../../assets/js/i18n.js"></script>
+</body>
+</html>

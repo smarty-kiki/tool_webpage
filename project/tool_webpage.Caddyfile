@@ -1,0 +1,6 @@
+product.yao-yang.cn {
+    tls 378031327@qq.com
+    root * /var/www/tool_webpage/public
+    file_server
+    encode gzip
+}
