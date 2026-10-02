@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n-zh="研和讨 — 24 小时替你调研和讨论的数字专家团队" data-i18n-en="Yanhetao — a digital research crew that works around the clock">研和讨 — 24 小时替你调研和讨论的数字专家团队</title>
-  <meta name="description" data-i18n-zh="研和讨：知识库 + 数字伙伴平台。为课题组建数字专家团队，它们自动调研、交叉讨论、整理成文档，7×24 不停歇。免费注册，送 100 万积分。" data-i18n-en="Yanhetao: knowledge base + digital crew. Assemble a team of AI experts that researches, debates, and writes it up — around the clock. Free to start, with 1M credits on sign-up.">
+  <meta name="description" data-i18n-zh="研和讨：知识库 + 数字伙伴平台。为课题组建数字专家团队，它们自动调研、交叉讨论、整理成文档，7×24 不停歇。注册即送 100 万积分。" data-i18n-en="Yanhetao: knowledge base + digital crew. Assemble a team of AI experts that researches, debates, and writes it up — around the clock. Sign up and start with 1M credits.">
   <link rel="icon" type="image/png" href="../../assets/img/research-docs.png">
   <link rel="stylesheet" href="../../assets/css/style.css">
   <style>
@@ -142,6 +142,8 @@
 
     <!-- ============ Hero ============ -->
     <section class="hero">
+      <canvas id="hero-gl" aria-hidden="true"
+              data-mode="net" data-speed="0.85" data-colors="#4c8ad8,#8fb8e8,#8a97ff"></canvas>
       <div class="container hero-inner">
 
         <div class="hero-copy">
@@ -165,7 +167,7 @@
             </a>
           </div>
           <div class="facts">
-            <span class="fact" data-i18n-zh="免费开始" data-i18n-en="Free to start">免费开始</span>
+            <span class="fact" data-i18n-zh="专家可组队协作" data-i18n-en="Experts team up">专家可组队协作</span>
             <span class="fact" data-i18n-zh="注册送 100 万积分" data-i18n-en="1M credits on sign-up">注册送 100 万积分</span>
             <span class="fact" data-i18n-zh="7×24 自动运转" data-i18n-en="Runs 24/7">7×24 自动运转</span>
             <span class="fact" data-i18n-zh="无需安装" data-i18n-en="No install needed">无需安装</span>
@@ -319,8 +321,8 @@
           <div class="step">
             <div class="step-num">1</div>
             <h3 data-i18n-zh="注册，领积分" data-i18n-en="Sign up, grab credits">注册，领积分</h3>
-            <p data-i18n-zh="打开 workshop.yao-yang.cn 免费注册，100 万积分到账，够团队先跑很多轮。"
-               data-i18n-en="Open workshop.yao-yang.cn, register for free, and start with 1,000,000 credits — plenty of runway.">打开 workshop.yao-yang.cn 免费注册，100 万积分到账，够团队先跑很多轮。</p>
+            <p data-i18n-zh="打开 workshop.yao-yang.cn 注册，100 万积分到账，够团队先跑很多轮。"
+               data-i18n-en="Open workshop.yao-yang.cn, sign up, and start with 1,000,000 credits — plenty of runway.">打开 workshop.yao-yang.cn 注册，100 万积分到账，够团队先跑很多轮。</p>
           </div>
           <div class="step">
             <div class="step-num">2</div>
@@ -340,7 +342,7 @@
           <summary data-i18n-zh="积分是怎么算的？" data-i18n-en="How do credits work?">积分是怎么算的？</summary>
           <div class="note-body">
             <p data-i18n-zh="积分只在 AI 干活时消耗（按用量折算，约 100 token 记 1 积分），注册即送 100 万。浏览知识库、阅读报告、安排任务都不消耗。"
-               data-i18n-en="Credits are only spent when the AI actually works (roughly 100 tokens = 1 credit), and you start with 1,000,000. Browsing, reading reports, and scheduling tasks are all free.">积分只在 AI 干活时消耗（按用量折算，约 100 token 记 1 积分），注册即送 100 万。浏览知识库、阅读报告、安排任务都不消耗。</p>
+               data-i18n-en="Credits are only spent when the AI actually works (roughly 100 tokens = 1 credit), and you start with 1,000,000. Browsing, reading reports, and scheduling tasks cost nothing.">积分只在 AI 干活时消耗（按用量折算，约 100 token 记 1 积分），注册即送 100 万。浏览知识库、阅读报告、安排任务都不消耗。</p>
           </div>
         </details>
       </div>
@@ -365,8 +367,8 @@
           <details>
             <summary data-i18n-zh="要花钱吗？" data-i18n-en="Does it cost money?">要花钱吗？</summary>
             <p class="faq-a"
-               data-i18n-zh="免费注册，注册即送 100 万积分，AI 执行任务时按用量消耗；逛知识库、读报告、安排任务统统不扣。"
-               data-i18n-en="Registration is free and comes with 1,000,000 credits, consumed only when AI runs tasks. Browsing the knowledge base, reading reports, and scheduling tasks cost nothing.">免费注册，注册即送 100 万积分，AI 执行任务时按用量消耗；逛知识库、读报告、安排任务统统不扣。</p>
+               data-i18n-zh="注册即送 100 万积分，AI 执行任务时按用量消耗；逛知识库、读报告、安排任务统统不扣。"
+               data-i18n-en="Sign-up comes with 1,000,000 credits, consumed only when AI runs tasks. Browsing the knowledge base, reading reports, and scheduling tasks cost nothing.">注册即送 100 万积分，AI 执行任务时按用量消耗；逛知识库、读报告、安排任务统统不扣。</p>
           </details>
           <details>
             <summary data-i18n-zh="它们的讨论靠谱吗？" data-i18n-en="Can I trust their debates?">它们的讨论靠谱吗？</summary>
@@ -383,8 +385,8 @@
       <div class="container">
         <div class="cta-band">
           <h2 data-i18n-zh="组建你的第一支专家团队。" data-i18n-en="Assemble your first crew.">组建你的第一支专家团队。</h2>
-          <p data-i18n-zh="免费开始，让调研和讨论自己跑起来，把时间留给判断。"
-             data-i18n-en="Free to start — let the research run itself and save your time for judgment.">免费开始，让调研和讨论自己跑起来，把时间留给判断。</p>
+          <p data-i18n-zh="现在就能开始，让调研和讨论自己跑起来，把时间留给判断。"
+             data-i18n-en="Start now — let the research run itself and save your time for judgment.">现在就能开始，让调研和讨论自己跑起来，把时间留给判断。</p>
           <div class="hero-ctas">
             <a class="btn btn-primary" href="https://workshop.yao-yang.cn/" target="_blank" rel="noopener">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
@@ -405,5 +407,6 @@
   </footer>
 
   <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/hero-gl.js"></script>
 </body>
 </html>

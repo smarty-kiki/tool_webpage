@@ -3,10 +3,200 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title data-i18n-zh="免费开源的开发者小工具" data-i18n-en="Free &amp; open-source developer tools">免费开源的开发者小工具</title>
-  <meta name="description" data-i18n-zh="做给自己用的开发者小工具：每一款都始于一个真实的日常痛点，全部免费、开源，下载即用。" data-i18n-en="Developer tools built for my own daily workflow — every one free, open source, and ready to run.">
+  <title data-i18n-zh="开源的开发者小工具" data-i18n-en="Open-source developer tools">开源的开发者小工具</title>
+  <meta name="description" data-i18n-zh="来自真实工作场景的工具：自己天天在用的开发者小工具，和与团队一起打磨的数字员工平台。全部开源，下载即用。" data-i18n-en="Tools from real work — daily-driver developer utilities and a digital-employee platform built with my team. All open source, ready to run.">
   <link rel="icon" type="image/svg+xml" href="./assets/img/favicon.svg">
   <link rel="stylesheet" href="./assets/css/style.css">
+  <style>
+    /* ===== 首页专属视觉（不影响工具页） ===== */
+
+    /* -- Hero 背景 --
+       默认：CSS 极光（无 JS / 无 WebGL2 时的回退）
+       hero-gl.js 成功启动着色器后给 .hero 加 .gl-on，交给 canvas 接管 */
+    .home-hero::before {
+      background:
+        radial-gradient(640px 440px at 20% 14%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 62%),
+        radial-gradient(580px 420px at 82% 20%, rgba(94, 165, 250, 0.22), transparent 62%),
+        radial-gradient(560px 440px at 52% 98%, rgba(138, 151, 255, 0.20), transparent 62%);
+      animation: heroAurora 24s ease-in-out infinite alternate;
+      will-change: transform;
+    }
+    @keyframes heroAurora {
+      from { transform: translate3d(-1.6%, -1.2%, 0) scale(1); }
+      to   { transform: translate3d(1.8%, 1.6%, 0) scale(1.08); }
+    }
+
+    /* -- 开场逐级浮现 -- */
+    .home-hero .eyebrow,
+    .home-hero .hero-title,
+    .home-hero .hero-sub,
+    .home-hero .hero-icons,
+    .home-hero .hero-ctas { animation: heroIn 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) backwards; }
+    .home-hero .eyebrow    { animation-delay: 0.05s; }
+    .home-hero .hero-title { animation-delay: 0.12s; }
+    .home-hero .hero-sub   { animation-delay: 0.2s; }
+    .home-hero .hero-icons { animation-delay: 0.3s; }
+    .home-hero .hero-ctas  { animation-delay: 0.4s; }
+    @keyframes heroIn {
+      from { opacity: 0; transform: translateY(16px); }
+    }
+
+    /* -- 主标题：更大 + 关键词渐变字 -- */
+    .home-hero .hero-title { font-size: clamp(38px, 5.6vw, 62px); letter-spacing: -0.03em; }
+    .home-hero .hero-title em { color: var(--accent-ink); }
+    @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+      .home-hero .hero-title em {
+        background: linear-gradient(98deg, #a06a06 5%, #c08812 52%, #dca72e 92%);
+        -webkit-background-clip: text;
+                background-clip: text;
+        color: transparent;
+        -webkit-text-fill-color: transparent;
+      }
+    }
+
+    /* -- eyebrow 呼吸小灯 -- */
+    .home-hero .eyebrow::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: heroDot 2.6s ease-in-out infinite;
+    }
+    @keyframes heroDot {
+      0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent); }
+      55%      { box-shadow: 0 0 0 7px transparent; }
+    }
+
+    /* -- 工具图标浮条：弧形排布 + 品牌色辉光 + 轻微漂浮 -- */
+    .hero-icons { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 16px; margin: 42px 0 34px; }
+    .hi {
+      width: 58px;
+      height: 58px;
+      padding: 3px;
+      border-radius: 17px;
+      background: #ffffff;
+      border: 1px solid rgba(30, 24, 12, 0.08);
+      box-shadow: 0 16px 36px color-mix(in srgb, var(--tc) 30%, transparent);
+      transform: rotate(var(--r, 0deg)) translateY(var(--y, 0px));
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .hi img { width: 100%; height: 100%; border-radius: 14px; animation: heroFloat 5.6s ease-in-out infinite; }
+    .hi:hover {
+      transform: rotate(0deg) translateY(calc(var(--y, 0px) - 5px)) scale(1.08);
+      box-shadow: 0 20px 44px color-mix(in srgb, var(--tc) 44%, transparent);
+    }
+    .hero-icons .hi:nth-child(1) { --r: -10deg; --y: 11px; }
+    .hero-icons .hi:nth-child(2) { --r: -6deg;  --y: 6px; }
+    .hero-icons .hi:nth-child(3) { --r: -3deg;  --y: 1px; }
+    .hero-icons .hi:nth-child(4) { --r: -1deg;  --y: -4px; }
+    .hero-icons .hi:nth-child(5) { --r: 1deg;   --y: -4px; }
+    .hero-icons .hi:nth-child(6) { --r: 3deg;   --y: 1px; }
+    .hero-icons .hi:nth-child(7) { --r: 6deg;   --y: 6px; }
+    .hero-icons .hi:nth-child(8) { --r: 10deg;  --y: 11px; }
+    .hero-icons .hi:nth-child(1) img, .hero-icons .hi:nth-child(8) img { animation-delay: -0.3s; }
+    .hero-icons .hi:nth-child(2) img, .hero-icons .hi:nth-child(7) img { animation-delay: -1.1s; }
+    .hero-icons .hi:nth-child(3) img, .hero-icons .hi:nth-child(6) img { animation-delay: -1.9s; }
+    .hero-icons .hi:nth-child(4) img, .hero-icons .hi:nth-child(5) img { animation-delay: -2.7s; }
+    @keyframes heroFloat {
+      0%, 100% { transform: translateY(-3px); }
+      50%      { transform: translateY(3px); }
+    }
+
+    /* -- 工具区小节 + 锚点 -- */
+    #tools { scroll-margin-top: 76px; }
+    .tools-head { text-align: center; margin: 0 0 38px; }
+    .tools-head .kicker { margin-bottom: 0; }
+
+    /* -- 卡片：品牌色 --tc 由每张卡的内联样式指定 -- */
+    .tool-card.featured { position: relative; --tc: var(--accent); }
+    .tool-card.featured::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      border-radius: inherit;
+      background: linear-gradient(90deg, transparent 6%, color-mix(in srgb, var(--tc) 75%, transparent) 50%, transparent 94%);
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .tool-card.featured::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: radial-gradient(340px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--tc) 12%, transparent), transparent 66%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .tool-card.featured:hover::before,
+    .tool-card.featured:hover::after { opacity: 1; }
+    .tool-card.featured:hover {
+      border-color: color-mix(in srgb, var(--tc) 48%, transparent);
+      box-shadow: 0 26px 70px color-mix(in srgb, var(--tc) 15%, transparent);
+    }
+    .tool-card .tool-icon { transition: transform 0.25s ease; }
+    .tool-card.featured .tool-icon { box-shadow: 0 16px 44px color-mix(in srgb, var(--tc) 26%, transparent); }
+    .tool-card.featured:hover .tool-icon { transform: translateY(-2px) rotate(-3deg) scale(1.04); }
+    .tool-card .go { color: color-mix(in srgb, var(--tc, var(--accent)) 52%, #241b0c); }
+
+    /* -- 领衔卡（任务坞）：通栏 + 标志三点 -- */
+    .tool-card.lead { grid-column: 1 / -1; padding: 40px 44px; align-items: center; }
+    .tool-card.lead .tool-icon { width: 104px; height: 104px; border-radius: 24px; }
+    .tool-card.lead h3 { font-size: 26px; }
+    .tool-card.lead .desc { font-size: 16.5px; max-width: 58ch; }
+    .lead-dots { margin-left: auto; display: flex; flex-direction: column; gap: 16px; padding: 0 12px; }
+    .lead-dots i {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #4aa3ff;
+      box-shadow: 0 0 20px 2px rgba(74, 163, 255, 0.75);
+      animation: dotGlow 3.4s ease-in-out infinite;
+    }
+    .lead-dots i:nth-child(2) { background: #ffc24d; box-shadow: 0 0 20px 2px rgba(255, 194, 77, 0.75); animation-delay: -1.1s; }
+    .lead-dots i:nth-child(3) { background: #34d399; box-shadow: 0 0 20px 2px rgba(52, 211, 153, 0.75); animation-delay: -2.2s; }
+    @keyframes dotGlow {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.5; }
+    }
+    .badge {
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: color-mix(in srgb, var(--tc) 52%, #241b0c);
+      background: color-mix(in srgb, var(--tc) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--tc) 36%, transparent);
+      border-radius: 999px;
+      padding: 3px 10px;
+    }
+
+    /* -- 滚动浮现（home.js 控制；无 JS 时这些类不存在） -- */
+    .reveal { opacity: 0; transform: translateY(22px); }
+    .reveal.in {
+      opacity: 1;
+      transform: none;
+      transition: opacity 0.6s ease, transform 0.65s cubic-bezier(0.2, 0.7, 0.2, 1);
+      transition-delay: var(--rd, 0s);
+    }
+
+    /* -- 小屏微调 -- */
+    @media (max-width: 920px) {
+      .hero-icons { gap: 12px; }
+      .tool-card.lead { padding: 34px; }
+    }
+    @media (max-width: 560px) {
+      .hero-icons { gap: 6px; margin: 32px 0 26px; }
+      .hi { width: 42px; height: 42px; padding: 2px; border-radius: 14px; }
+      .hi img { border-radius: 11px; }
+      .hero-icons .hi { --r: 0deg; --y: 0px; }
+      .lead-dots { display: none; }
+      .tool-card.lead { padding: 26px 22px; }
+      .tool-card.lead .tool-icon { width: 72px; height: 72px; border-radius: 18px; }
+      .tool-card.lead h3 { font-size: 22px; }
+    }
+  </style>
 </head>
 <body>
 
@@ -16,9 +206,9 @@
         <svg viewBox="0 0 64 64" aria-hidden="true">
           <rect width="64" height="64" rx="14" fill="#12162b"/>
           <polyline points="12,34 23,34 28,22 36,44 41,28 46,34 52,34"
-            fill="none" stroke="#FF6B35" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            fill="none" stroke="#ffc24d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span>Tools</span>
+        <span data-i18n-zh="姚杨的产品" data-i18n-en="Yao Yang's Products">姚杨的产品</span>
       </a>
       <div class="nav-right">
         <a class="nav-link hide-sm" href="https://github.com/smarty-kiki" target="_blank" rel="noopener">GitHub</a>
@@ -32,21 +222,43 @@
 
   <main>
     <section class="hero home-hero">
+      <canvas id="hero-gl" aria-hidden="true"
+              data-mode="flow" data-colors="#ffc24d,#5ea5fa,#8a97ff"></canvas>
       <div class="container">
-        <span class="eyebrow" data-i18n-zh="全部免费 · 全部开源" data-i18n-en="All free · All open source">全部免费 · 全部开源</span>
+        <span class="eyebrow" data-i18n-zh="开源 · 自己天天在用" data-i18n-en="Open source · Daily drivers">开源 · 自己天天在用</span>
         <h1 class="hero-title"
             data-i18n-zh="自己做、天天用的<br><em>开发者小工具</em>"
             data-i18n-en="Indie developer tools,<br><em>built &amp; used daily</em>">自己做、天天用的<br><em>开发者小工具</em></h1>
         <p class="hero-sub"
-           data-i18n-zh="每一款都始于我自己工作里一个真实的日常痛点：自己先用起来，顺手了才放出来。全部免费、开源，下载即用。"
-           data-i18n-en="Every tool here started as a fix for a real annoyance in my own workflow — used daily first, then shared. All free, all open source, ready to run.">每一款都始于我自己工作里一个真实的日常痛点：自己先用起来，顺手了才放出来。全部免费、开源，下载即用。</p>
+           data-i18n-zh="每一款都来自真实的工作场景——有的是自己天天在用的顺手工具，有的是和团队一起打磨的数字员工平台。全部开源，下载即用。"
+           data-i18n-en="Every tool here comes from real work — some are the daily drivers I build for myself, some are a digital-employee platform built with my team. All open source, ready to run.">每一款都来自真实的工作场景——有的是自己天天在用的顺手工具，有的是和团队一起打磨的数字员工平台。全部开源，下载即用。</p>
+        <div class="hero-icons" aria-hidden="true">
+          <div class="hi" style="--tc: #4aa3ff;"><img src="./assets/img/notch-tasks.png" alt=""></div>
+          <div class="hi" style="--tc: #ff6b35;"><img src="./assets/img/watch-your-claude.svg" alt=""></div>
+          <div class="hi" style="--tc: #e2b052;"><img src="./assets/img/guandan-challenge.svg" alt=""></div>
+          <div class="hi" style="--tc: #8a97ff;"><img src="./assets/img/trippy-wiki.png" alt=""></div>
+          <div class="hi" style="--tc: #4c8ad8;"><img src="./assets/img/research-docs.png" alt=""></div>
+          <div class="hi" style="--tc: #0673f8;"><img src="./assets/img/news.png" alt=""></div>
+          <div class="hi" style="--tc: #2d75fe;"><img src="./assets/img/staffdeck.png" alt=""></div>
+          <div class="hi" style="--tc: #bd79ff;"><img src="./assets/img/kiki.png" alt=""></div>
+        </div>
+        <div class="hero-ctas">
+          <a class="btn btn-primary" href="#tools">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"></path><polyline points="6 13 12 19 18 13"></polyline></svg>
+            <span data-i18n-zh="看看有哪些工具" data-i18n-en="Browse the tools">看看有哪些工具</span>
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/smarty-kiki" target="_blank" rel="noopener">GitHub</a>
+        </div>
       </div>
     </section>
 
-    <section class="container" style="padding-bottom: 96px;">
+    <section class="container" id="tools" style="padding-bottom: 96px;">
+      <div class="tools-head">
+        <span class="kicker" data-i18n-zh="全部工具" data-i18n-en="All the tools">全部工具</span>
+      </div>
       <div class="tools-grid">
 
-        <a class="tool-card featured" href="./tools/notch-tasks/">
+        <a class="tool-card featured lead" style="--tc: #4aa3ff;" href="./tools/notch-tasks/">
           <img class="tool-icon" src="./assets/img/notch-tasks.png" alt="任务坞 NotchTasks">
           <div>
             <h3><span data-i18n-zh="任务坞" data-i18n-en="NotchTasks">任务坞</span> <span class="go">→</span></h3>
@@ -56,12 +268,13 @@
             <div class="tags">
               <span class="tag">macOS 14+</span>
               <span class="tag" data-i18n-zh="常驻屏幕右缘" data-i18n-en="Lives on your screen edge">常驻屏幕右缘</span>
-              <span class="tag" data-i18n-zh="免费开源" data-i18n-en="Free &amp; open source">免费开源</span>
+              <span class="tag" data-i18n-zh="开源" data-i18n-en="Open source">开源</span>
             </div>
           </div>
+          <div class="lead-dots" aria-hidden="true"><i></i><i></i><i></i></div>
         </a>
 
-        <a class="tool-card featured" href="./tools/watch-your-claude/">
+        <a class="tool-card featured" style="--tc: #ff6b35;" href="./tools/watch-your-claude/">
           <img class="tool-icon" src="./assets/img/watch-your-claude.svg" alt="WatchYourClaude">
           <div>
             <h3>WatchYourClaude <span class="go">→</span></h3>
@@ -71,12 +284,12 @@
             <div class="tags">
               <span class="tag">macOS 14+</span>
               <span class="tag" data-i18n-zh="菜单栏应用" data-i18n-en="Menu bar app">菜单栏应用</span>
-              <span class="tag" data-i18n-zh="免费开源" data-i18n-en="Free &amp; open source">免费开源</span>
+              <span class="tag" data-i18n-zh="开源" data-i18n-en="Open source">开源</span>
             </div>
           </div>
         </a>
 
-        <a class="tool-card featured" href="./tools/guandan-challenge/">
+        <a class="tool-card featured" style="--tc: #e2b052;" href="./tools/guandan-challenge/">
           <img class="tool-icon" src="./assets/img/guandan-challenge.svg" alt="LLM Guandan Challenge">
           <div>
             <h3><span data-i18n-zh="大模型掼蛋挑战赛" data-i18n-en="LLM Guandan Challenge">大模型掼蛋挑战赛</span> <span class="go">→</span></h3>
@@ -86,12 +299,12 @@
             <div class="tags">
               <span class="tag" data-i18n-zh="网页应用" data-i18n-en="Web app">网页应用</span>
               <span class="tag" data-i18n-zh="无需注册" data-i18n-en="No sign-up">无需注册</span>
-              <span class="tag" data-i18n-zh="免费开玩" data-i18n-en="Free to play">免费开玩</span>
+              <span class="tag" data-i18n-zh="打开即玩" data-i18n-en="Play in browser">打开即玩</span>
             </div>
           </div>
         </a>
 
-        <a class="tool-card featured" href="./tools/trippy-wiki/">
+        <a class="tool-card featured" style="--tc: #8a97ff;" href="./tools/trippy-wiki/">
           <img class="tool-icon" src="./assets/img/trippy-wiki.png" alt="Trippy Wiki">
           <div>
             <h3><span data-i18n-zh="梦游 Wiki" data-i18n-en="Trippy Wiki">梦游 Wiki</span> <span class="go">→</span></h3>
@@ -100,13 +313,13 @@
                data-i18n-en="An imagination-powered wiki: you bring the idea, AI writes it up, and passers-by vote with 'Float' or 'Lame'. A wiki for anything — even tonight's dream.">一个由想象力驱动的 Wiki：你出脑洞，AI 成文，路过的人用「飘」和「拉」投票。万物皆可 Wiki，包括你今晚的梦。</p>
             <div class="tags">
               <span class="tag" data-i18n-zh="网页应用" data-i18n-en="Web app">网页应用</span>
-              <span class="tag" data-i18n-zh="免费开逛" data-i18n-en="Free to browse">免费开逛</span>
+              <span class="tag" data-i18n-zh="打开就能逛" data-i18n-en="Open and browse">打开就能逛</span>
               <span class="tag" data-i18n-zh="AI 创作" data-i18n-en="AI-assisted">AI 创作</span>
             </div>
           </div>
         </a>
 
-        <a class="tool-card featured" href="./tools/research-docs/">
+        <a class="tool-card featured" style="--tc: #4c8ad8;" href="./tools/research-docs/">
           <img class="tool-icon" src="./assets/img/research-docs.png" alt="研和讨">
           <div>
             <h3><span data-i18n-zh="研和讨" data-i18n-en="Yanhetao">研和讨</span> <span class="go">→</span></h3>
@@ -116,12 +329,12 @@
             <div class="tags">
               <span class="tag" data-i18n-zh="网页应用" data-i18n-en="Web app">网页应用</span>
               <span class="tag" data-i18n-zh="7×24 自动运转" data-i18n-en="Runs 24/7">7×24 自动运转</span>
-              <span class="tag" data-i18n-zh="免费开始" data-i18n-en="Free to start">免费开始</span>
+              <span class="tag" data-i18n-zh="注册送 100 万积分" data-i18n-en="1M credits on sign-up">注册送 100 万积分</span>
             </div>
           </div>
         </a>
 
-        <a class="tool-card featured" href="./tools/news/">
+        <a class="tool-card featured" style="--tc: #0673f8;" href="./tools/news/">
           <img class="tool-icon" src="./assets/img/news.png" alt="纽斯">
           <div>
             <h3><span data-i18n-zh="纽斯" data-i18n-en="Nius">纽斯</span> <span class="go">→</span></h3>
@@ -136,6 +349,36 @@
           </div>
         </a>
 
+        <a class="tool-card featured" style="--tc: #2d75fe;" href="./tools/staffdeck/">
+          <img class="tool-icon" src="./assets/img/staffdeck.png" alt="StaffDeck">
+          <div>
+            <h3>StaffDeck <span class="go">→</span></h3>
+            <p class="desc"
+               data-i18n-zh="基于 OpenBMB 的 StaffDeck 打造的企业级升级版：把经验、流程与判断标准固化成有岗位、有工号的数字员工——重复的活它们接手，每一步可查、可控、可接管。Mac、Windows 装好即用。"
+               data-i18n-en="An enterprise-grade upgrade built on OpenBMB's StaffDeck: experience, process, and judgment become digital employees with a role and an ID. They take the repetitive work, and every step stays auditable, controllable, and hand-over-ready. Native on Mac and Windows.">基于 OpenBMB 的 StaffDeck 打造的企业级升级版：把经验、流程与判断标准固化成有岗位、有工号的数字员工——重复的活它们接手，每一步可查、可控、可接管。Mac、Windows 装好即用。</p>
+            <div class="tags">
+              <span class="tag">macOS / Windows / Linux</span>
+              <span class="tag" data-i18n-zh="企业级升级版" data-i18n-en="Enterprise edition">企业级升级版</span>
+              <span class="tag" data-i18n-zh="开源" data-i18n-en="Open source">开源</span>
+            </div>
+          </div>
+        </a>
+
+        <a class="tool-card featured" style="--tc: #bd79ff;" href="./tools/kiki/">
+          <img class="tool-icon" src="./assets/img/kiki.png" alt="Kiki">
+          <div>
+            <h3>Kiki <span class="badge" data-i18n-zh="新登场" data-i18n-en="New">新登场</span> <span class="go">→</span></h3>
+            <p class="desc"
+               data-i18n-zh="按住 Control+Option 说一句中文，紫色光标直接飞到屏幕上那个东西上——该点的时候，它真的会点。危险动作，它自己会刹车。"
+               data-i18n-en="Hold Control+Option, speak, and a purple cursor flies straight to the thing you meant — and really clicks when it's time. Dangerous moves, it refuses on its own.">按住 Control+Option 说一句中文，紫色光标直接飞到屏幕上那个东西上——该点的时候，它真的会点。危险动作，它自己会刹车。</p>
+            <div class="tags">
+              <span class="tag">macOS 14.2+</span>
+              <span class="tag" data-i18n-zh="菜单栏中文助手" data-i18n-en="Menu bar assistant">菜单栏中文助手</span>
+              <span class="tag" data-i18n-zh="开源" data-i18n-en="Open source">开源</span>
+            </div>
+          </div>
+        </a>
+
         <div class="tool-card placeholder"
              data-i18n-zh="更多工具<br>正在路上" data-i18n-en="More tools<br>on the way">更多工具<br>正在路上</div>
 
@@ -145,12 +388,14 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <span data-i18n-zh="© 2026 · 所有工具均基于 MIT 协议免费开源" data-i18n-en="© 2026 · All tools free &amp; open source under the MIT license">© 2026 · 所有工具均基于 MIT 协议免费开源</span>
+      <span data-i18n-zh="© 2026 · 所有工具均开源" data-i18n-en="© 2026 · All tools open source">© 2026 · 所有工具均开源</span>
       <a href="https://github.com/smarty-kiki" target="_blank" rel="noopener"
          data-i18n-zh="在 GitHub 上关注更新 →" data-i18n-en="Follow along on GitHub →">在 GitHub 上关注更新 →</a>
     </div>
   </footer>
 
   <script src="./assets/js/i18n.js"></script>
+  <script src="./assets/js/hero-gl.js"></script>
+  <script src="./assets/js/home.js"></script>
 </body>
 </html>

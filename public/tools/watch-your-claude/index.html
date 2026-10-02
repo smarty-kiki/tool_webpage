@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n-zh="WatchYourClaude — 菜单栏里的 Claude Code 监控" data-i18n-en="WatchYourClaude — Claude Code monitoring in your menu bar">WatchYourClaude — 菜单栏里的 Claude Code 监控</title>
-  <meta name="description" data-i18n-zh="WatchYourClaude 把每个 Claude Code 会话的状态、实时 token 速度和消耗账单放进 macOS 菜单栏。免费、开源、数据不出本机。" data-i18n-en="WatchYourClaude puts every Claude Code session's status, live token speed, and usage ledger right into your macOS menu bar. Free, open source, data stays on your Mac.">
+  <meta name="description" data-i18n-zh="WatchYourClaude 把每个 Claude Code 会话的状态、实时 token 速度和消耗账单放进 macOS 菜单栏。开源、数据不出本机。" data-i18n-en="WatchYourClaude puts every Claude Code session's status, live token speed, and usage ledger right into your macOS menu bar. Open source, data stays on your Mac.">
   <link rel="icon" type="image/svg+xml" href="../../assets/img/watch-your-claude.svg">
   <link rel="stylesheet" href="../../assets/css/style.css">
 </head>
-<body>
+<body style="--accent: #ff6b35;">
 
   <header class="site-header">
     <div class="container nav">
@@ -18,7 +18,7 @@
       </a>
       <div class="nav-right">
         <a class="nav-link hide-sm" href="https://github.com/smarty-kiki/watch_your_claude" target="_blank" rel="noopener">GitHub</a>
-        <a class="btn btn-primary btn-sm" href="https://github.com/smarty-kiki/watch_your_claude/releases/latest" target="_blank" rel="noopener"
+        <a class="btn btn-primary btn-sm" href="https://github.com/smarty-kiki/watch_your_claude/releases" target="_blank" rel="noopener"
            data-i18n-zh="下载" data-i18n-en="Download">下载</a>
         <div class="lang-switch" role="group" aria-label="Language">
           <button type="button" data-lang="zh" aria-pressed="true">中文</button>
@@ -32,6 +32,8 @@
 
     <!-- ============ Hero ============ -->
     <section class="hero">
+      <canvas id="hero-gl" aria-hidden="true"
+              data-mode="trace" data-colors="#ff6b35,#ffb26b,#ff878d" data-speed="1.15"></canvas>
       <div class="container hero-inner">
 
         <div class="hero-copy">
@@ -49,16 +51,16 @@
              data-i18n-zh="WatchYourClaude 把每个 Claude Code 会话的状态、实时的 token 速度和消耗账单，都放进你的 macOS 菜单栏。不用切窗口、不用敲命令，一抬眼全知道。"
              data-i18n-en="WatchYourClaude puts every Claude Code session's status, live token speed, and usage ledger right into your macOS menu bar. No window switching, no commands — one glance says it all.">WatchYourClaude 把每个 Claude Code 会话的状态、实时的 token 速度和消耗账单，都放进你的 macOS 菜单栏。不用切窗口、不用敲命令，一抬眼全知道。</p>
           <div class="hero-ctas">
-            <a class="btn btn-primary" href="https://github.com/smarty-kiki/watch_your_claude/releases/latest" target="_blank" rel="noopener">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/watch_your_claude/releases" target="_blank" rel="noopener">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
-              <span data-i18n-zh="免费下载" data-i18n-en="Download free">免费下载</span>
+              <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
             </a>
             <a class="btn btn-ghost" href="https://github.com/smarty-kiki/watch_your_claude" target="_blank" rel="noopener"
                data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
           </div>
           <div class="facts">
             <span class="fact">macOS 14.0+</span>
-            <span class="fact" data-i18n-zh="免费 · MIT 开源" data-i18n-en="Free · MIT open source">免费 · MIT 开源</span>
+            <span class="fact" data-i18n-zh="MIT 开源" data-i18n-en="MIT open source">MIT 开源</span>
             <span class="fact" data-i18n-zh="数据不出本机" data-i18n-en="Data stays on your Mac">数据不出本机</span>
             <span class="fact" data-i18n-zh="不占 Dock、不弹窗口" data-i18n-en="No Dock icon, no windows">不占 Dock、不弹窗口</span>
           </div>
@@ -244,7 +246,7 @@
             <div class="feature-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="8 6 2 12 8 18"/><polyline points="16 6 22 12 16 18"/></svg>
             </div>
-            <h3 data-i18n-zh="免费，而且开源" data-i18n-en="Free, and open source">免费，而且开源</h3>
+            <h3 data-i18n-zh="开源，随时自己编译" data-i18n-en="Open source — build it yourself">开源，随时自己编译</h3>
             <p data-i18n-zh="MIT 协议，源码全部公开。想研究实现、想自己魔改，仓库随时欢迎。"
                data-i18n-en="MIT licensed with the full source on GitHub. Study it, tweak it, make it yours — the repo is right there.">MIT 协议，源码全部公开。想研究实现、想自己魔改，仓库随时欢迎。</p>
           </div>
@@ -316,8 +318,8 @@
           <details>
             <summary data-i18n-zh="要花钱吗？" data-i18n-en="Does it cost anything?">要花钱吗？</summary>
             <p class="faq-a"
-               data-i18n-zh="不花。WatchYourClaude 免费使用，MIT 协议开源，也可以自己下载源码编译。"
-               data-i18n-en="No. WatchYourClaude is free to use, MIT-licensed, and you can always build it from source yourself.">不花。WatchYourClaude 免费使用，MIT 协议开源，也可以自己下载源码编译。</p>
+               data-i18n-zh="不花。WatchYourClaude 以 MIT 协议开源，也可以自己下载源码编译。"
+               data-i18n-en="No. WatchYourClaude is MIT-licensed, and you can always build it from source yourself.">不花。WatchYourClaude 以 MIT 协议开源，也可以自己下载源码编译。</p>
           </details>
           <details>
             <summary data-i18n-zh="我的数据安全吗？" data-i18n-en="Is my data safe?">我的数据安全吗？</summary>
@@ -346,12 +348,12 @@
       <div class="container">
         <div class="cta-band">
           <h2 data-i18n-zh="现在，把 Claude Code 看得清清楚楚" data-i18n-en="See your Claude Code clearly, starting now">现在，把 Claude Code 看得清清楚楚</h2>
-          <p data-i18n-zh="免费下载，一分钟装好。下一个长任务跑起来的时候，你就再也不用盯着终端了。"
-             data-i18n-en="Free to download, a minute to install. The next long task you run, you won't be staring at the terminal.">免费下载，一分钟装好。下一个长任务跑起来的时候，你就再也不用盯着终端了。</p>
+          <p data-i18n-zh="下载即用，一分钟装好。下一个长任务跑起来的时候，你就再也不用盯着终端了。"
+             data-i18n-en="Download and go — a minute to install. The next long task you run, you won't be staring at the terminal.">下载即用，一分钟装好。下一个长任务跑起来的时候，你就再也不用盯着终端了。</p>
           <div class="hero-ctas">
-            <a class="btn btn-primary" href="https://github.com/smarty-kiki/watch_your_claude/releases/latest" target="_blank" rel="noopener">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/watch_your_claude/releases" target="_blank" rel="noopener">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
-              <span data-i18n-zh="免费下载" data-i18n-en="Download free">免费下载</span>
+              <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
             </a>
             <a class="btn btn-ghost" href="https://github.com/smarty-kiki/watch_your_claude" target="_blank" rel="noopener"
                data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
@@ -374,5 +376,6 @@
   </footer>
 
   <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/hero-gl.js"></script>
 </body>
 </html>

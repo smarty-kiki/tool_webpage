@@ -26,9 +26,9 @@
     .nt-wait {
       font-size: 11.5px;
       font-weight: 700;
-      color: #ffb020;
-      background: rgba(255, 176, 32, 0.12);
-      border: 1px solid rgba(255, 176, 32, 0.32);
+      color: #ffc24d;
+      background: rgba(255, 194, 77, 0.12);
+      border: 1px solid rgba(255, 194, 77, 0.32);
       border-radius: 999px;
       padding: 3px 10px;
     }
@@ -41,13 +41,13 @@
       font-size: 13px;
     }
     .nt-dot { flex-shrink: 0; width: 9px; height: 9px; border-radius: 50%; }
-    .nt-dot.wait  { background: #ffb020; animation: nt-pulse 1.6s ease-in-out infinite; }
+    .nt-dot.wait  { background: #ffc24d; animation: nt-pulse 1.6s ease-in-out infinite; }
     .nt-dot.run   { background: var(--accent); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent); }
     .nt-dot.done  { background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.55); }
     .nt-dot.old   { background: rgba(255, 255, 255, 0.22); }
     @keyframes nt-pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 176, 32, 0.45); }
-      50%      { box-shadow: 0 0 0 6px rgba(255, 176, 32, 0); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 194, 77, 0.45); }
+      50%      { box-shadow: 0 0 0 6px rgba(255, 194, 77, 0); }
     }
     .nt-name { color: rgba(255, 255, 255, 0.9); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .nt-src {
@@ -62,7 +62,7 @@
     .nt-src.wb { color: #7cb8ff; background: rgba(124, 184, 255, 0.12); border: 1px solid rgba(124, 184, 255, 0.3); }
     .nt-src.cli { color: #55e0a8; background: rgba(85, 224, 168, 0.1); border: 1px solid rgba(85, 224, 168, 0.28); }
     .nt-state { flex-shrink: 0; width: 58px; text-align: right; font-size: 11.5px; }
-    .nt-state.wait { color: #ffb020; }
+    .nt-state.wait { color: #ffc24d; }
     .nt-state.run  { color: var(--accent); }
     .nt-state.done { color: #34d399; }
     .nt-state.old  { color: rgba(255, 255, 255, 0.38); }
@@ -77,8 +77,8 @@
     .nt-alert {
       position: absolute;
       left: -10px; bottom: 44px;
-      background: rgba(255, 176, 32, 0.14);
-      border: 1px solid rgba(255, 176, 32, 0.4);
+      background: rgba(255, 194, 77, 0.14);
+      border: 1px solid rgba(255, 194, 77, 0.4);
       color: rgba(255, 255, 255, 0.92);
       font-size: 12.5px;
       padding: 9px 14px;
@@ -110,8 +110,8 @@
       </a>
       <div class="nav-right">
         <a class="nav-link hide-sm" href="https://github.com/smarty-kiki/notch_tasks" target="_blank" rel="noopener">GitHub</a>
-        <a class="btn btn-primary btn-sm" href="https://github.com/smarty-kiki/notch_tasks/releases/latest" target="_blank" rel="noopener">
-          <span data-i18n-zh="免费下载" data-i18n-en="Download free">免费下载</span>
+        <a class="btn btn-primary btn-sm" href="https://github.com/smarty-kiki/notch_tasks/releases" target="_blank" rel="noopener">
+          <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
         </a>
         <div class="lang-switch" role="group" aria-label="Language">
           <button type="button" data-lang="zh" aria-pressed="true">中文</button>
@@ -125,6 +125,8 @@
 
     <!-- ============ Hero ============ -->
     <section class="hero">
+      <canvas id="hero-gl" aria-hidden="true"
+              data-mode="queue" data-colors="#4aa3ff,#ffc24d,#7fd0ff"></canvas>
       <div class="container hero-inner">
 
         <div class="hero-copy">
@@ -142,16 +144,16 @@
              data-i18n-zh="任务坞是屏幕右边缘的一枚小把手：WorkBuddy 的会话、终端里的 Claude Code CLI，谁在跑、谁在等你确认、谁刚收工——鼠标扫过去就展开。该你出手时，它还会亮。"
              data-i18n-en="NotchTasks is a little handle on the right edge of your screen: WorkBuddy sessions and terminal Claude Code CLIs — running, waiting on you, or just finished. Sweep over it to expand; it lights up when your turn comes.">任务坞是屏幕右边缘的一枚小把手：WorkBuddy 的会话、终端里的 Claude Code CLI，谁在跑、谁在等你确认、谁刚收工——鼠标扫过去就展开。该你出手时，它还会亮。</p>
           <div class="hero-ctas">
-            <a class="btn btn-primary" href="https://github.com/smarty-kiki/notch_tasks/releases/latest" target="_blank" rel="noopener">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/notch_tasks/releases" target="_blank" rel="noopener">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
-              <span data-i18n-zh="免费下载" data-i18n-en="Download free">免费下载</span>
+              <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
             </a>
             <a class="btn btn-ghost" href="https://github.com/smarty-kiki/notch_tasks" target="_blank" rel="noopener"
                data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
           </div>
           <div class="facts">
             <span class="fact">macOS 14+</span>
-            <span class="fact" data-i18n-zh="免费 · MIT 开源" data-i18n-en="Free · MIT open source">免费 · MIT 开源</span>
+            <span class="fact" data-i18n-zh="MIT 开源" data-i18n-en="MIT open source">MIT 开源</span>
             <span class="fact" data-i18n-zh="全程只读" data-i18n-en="Strictly read-only">全程只读</span>
             <span class="fact" data-i18n-zh="无需任何权限" data-i18n-en="No permissions needed">无需任何权限</span>
           </div>
@@ -365,12 +367,12 @@
       <div class="container">
         <div class="cta-band">
           <h2 data-i18n-zh="该看哪一个，让把手告诉你。" data-i18n-en="Let the handle tell you where to look.">该看哪一个，让把手告诉你。</h2>
-          <p data-i18n-zh="免费开源，macOS 14+，Intel 与 Apple Silicon 通用。下一个多任务并行的下午，你就离不开它了。"
-             data-i18n-en="Free and open source, macOS 14+, universal binary. The next afternoon you run five things at once, you won't want to be without it.">免费开源，macOS 14+，Intel 与 Apple Silicon 通用。下一个多任务并行的下午，你就离不开它了。</p>
+          <p data-i18n-zh="开源、不收费，macOS 14+，Intel 与 Apple Silicon 通用。下一个多任务并行的下午，你就离不开它了。"
+             data-i18n-en="Open source, no charge — macOS 14+, universal binary. The next afternoon you run five things at once, you won't want to be without it.">开源、不收费，macOS 14+，Intel 与 Apple Silicon 通用。下一个多任务并行的下午，你就离不开它了。</p>
           <div class="hero-ctas">
-            <a class="btn btn-primary" href="https://github.com/smarty-kiki/notch_tasks/releases/latest" target="_blank" rel="noopener">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/notch_tasks/releases" target="_blank" rel="noopener">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
-              <span data-i18n-zh="免费下载" data-i18n-en="Download free">免费下载</span>
+              <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
             </a>
             <a class="btn btn-ghost" href="https://github.com/smarty-kiki/notch_tasks" target="_blank" rel="noopener"
                data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
@@ -390,5 +392,6 @@
   </footer>
 
   <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/hero-gl.js"></script>
 </body>
 </html>

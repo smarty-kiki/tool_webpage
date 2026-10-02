@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n-zh="StaffDeck 企业级升级版 — 数字员工平台" data-i18n-en="StaffDeck Enterprise — Digital-employee platform">StaffDeck 企业级升级版 — 数字员工平台</title>
+  <meta name="description" data-i18n-zh="基于 OpenBMB 的 StaffDeck 打造的企业级升级版：把经验、流程与判断标准固化成有岗位、能持续工作的数字员工。桌面客户端支持 macOS、Windows、Linux，AGPL-3.0 开源，可私有化部署。" data-i18n-en="An enterprise upgrade built on OpenBMB's StaffDeck: it turns experience, process, and judgment into digital employees with a role and a job to do. Desktop clients for macOS, Windows, and Linux. AGPL-3.0 open source, private deployment supported.">
+  <link rel="icon" type="image/png" href="../../assets/img/staffdeck.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    /* ===== StaffDeck 页专属（不影响其他页） ===== */
+
+    /* -- Hero 右侧：数字员工名册窗口 -- */
+    .sd-panel {
+      position: relative;
+      top: 0;
+      right: auto;
+      width: 100%;
+      padding: 0 0 14px;
+      overflow: hidden;
+    }
+    .sd-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 44px;
+      padding: 0 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .sd-dots { display: flex; gap: 6px; }
+    .sd-dots i { width: 10px; height: 10px; border-radius: 50%; }
+    .sd-dots i:nth-child(1) { background: #ff5f57; }
+    .sd-dots i:nth-child(2) { background: #febc2e; }
+    .sd-dots i:nth-child(3) { background: #28c840; }
+    .sd-appname { font-size: 12px; color: var(--faint); }
+    .sd-tabs { margin-left: auto; display: flex; gap: 18px; align-self: stretch; }
+    .sd-tabs span, .sd-tabs em {
+      display: inline-flex;
+      align-items: center;
+      font-size: 12.5px;
+      font-style: normal;
+    }
+    .sd-tabs span { color: var(--faint); }
+    .sd-tabs em { color: var(--text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
+
+    .sd-panel .mp-head { margin: 0 16px; padding: 13px 0 11px; }
+    .sd-panel .mp-live { text-transform: none; letter-spacing: 0.02em; }
+
+    .sd-roster { padding: 4px 8px 0; }
+    .sd-roster li { display: flex; align-items: center; gap: 11px; padding: 10px 8px; }
+    .sd-roster li + li { border-top: 1px solid rgba(255, 255, 255, 0.055); }
+    .sd-avatar {
+      flex: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--av);
+      background: color-mix(in srgb, var(--av) 16%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--av) 32%, transparent);
+    }
+    .sd-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .sd-name { font-size: 13.5px; font-weight: 700; }
+    .sd-name small {
+      margin-left: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--faint);
+      letter-spacing: 0.04em;
+    }
+    .sd-task {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sd-state {
+      margin-left: auto;
+      flex: none;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--st);
+      background: color-mix(in srgb, var(--st) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--st) 34%, transparent);
+      border-radius: 999px;
+      padding: 3px 9px;
+    }
+    .sd-state.ok { --st: var(--green); }
+    .sd-state.run { --st: var(--blue); }
+    .sd-state.wait { --st: var(--accent); }
+
+    .sd-panel .mp-block { margin: 8px 16px 0; }
+    .sd-trace { margin-top: 10px; display: flex; flex-direction: column; gap: 9px; }
+    .sd-trace li { position: relative; padding-left: 19px; font-size: 12.5px; color: var(--faint); }
+    .sd-trace li::before {
+      content: "";
+      position: absolute;
+      left: 1px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #39415c;
+    }
+    .sd-trace li.done { color: var(--muted); }
+    .sd-trace li.done::before { background: var(--green); }
+    .sd-trace li.now { color: var(--text); font-weight: 600; }
+    .sd-trace li.now::before { background: var(--blue); animation: sdPulse 2s ease-out infinite; }
+    @keyframes sdPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(94, 165, 250, 0.5); }
+      70%  { box-shadow: 0 0 0 7px rgba(94, 165, 250, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(94, 165, 250, 0); }
+    }
+
+    /* -- 浮动通知：等你确认 -- */
+    .sd-toast {
+      position: absolute;
+      right: 10px;
+      bottom: 34px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #ffd166;
+      background: rgba(17, 21, 38, 0.94);
+      border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+      border-radius: 999px;
+      padding: 9px 15px;
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      animation: sdFloat 5s ease-in-out infinite;
+    }
+    .sd-toast i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex: none;
+      background: var(--accent);
+      animation: blink 1.6s ease-in-out infinite;
+    }
+    @keyframes sdFloat {
+      0%, 100% { transform: translateY(-4px); }
+      50%      { transform: translateY(4px); }
+    }
+
+    /* -- 下载区 -- */
+    .dl-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .dl-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: transform 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    .dl-card:hover {
+      transform: translateY(-3px);
+      border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+      background: var(--card-hover);
+      box-shadow: 0 18px 48px color-mix(in srgb, var(--accent) 10%, transparent);
+    }
+    .dl-ico {
+      flex: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      background: rgba(30, 24, 12, 0.045);
+      border: 1px solid var(--border);
+    }
+    .dl-ico svg { width: 22px; height: 22px; }
+    .dl-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .dl-os { font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em; }
+    .dl-arch { font-size: 12.5px; color: var(--muted); }
+    .dl-fmt {
+      margin-left: auto;
+      flex: none;
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+      border-radius: 999px;
+      padding: 4px 10px;
+    }
+    .dl-note { text-align: center; margin-top: 22px; font-size: 13.5px; color: var(--faint); }
+    .dl-note a {
+      color: var(--muted);
+      text-decoration: underline;
+      text-decoration-color: color-mix(in srgb, var(--muted) 45%, transparent);
+      text-underline-offset: 3px;
+    }
+    .dl-note a:hover { color: var(--text); }
+
+    @media (max-width: 720px) {
+      .dl-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .sd-toast { right: 6px; bottom: 18px; }
+    }
+  </style>
+</head>
+<body style="--accent: #2d75fe; --btn-text: #fff;">
+
+  <header class="site-header">
+    <div class="container nav">
+      <a class="back-link" href="../../">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        <span data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</span>
+      </a>
+      <div class="nav-right">
+        <a class="nav-link hide-sm" href="https://github.com/smarty-kiki/StaffDeck" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="https://github.com/smarty-kiki/StaffDeck/releases" target="_blank" rel="noopener"
+           data-i18n-zh="下载" data-i18n-en="Download">下载</a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <canvas id="hero-gl" aria-hidden="true"
+              data-mode="sop" data-colors="#2d75fe,#5ea5fa,#8a97ff"></canvas>
+      <div class="container hero-inner">
+
+        <div class="hero-copy">
+          <div class="hero-app">
+            <img src="../../assets/img/staffdeck.png" alt="StaffDeck">
+            <div>
+              <div class="hero-app-name">StaffDeck</div>
+              <div class="hero-app-cat" data-i18n-zh="OpenBMB StaffDeck 企业级升级版 · 桌面客户端" data-i18n-en="Enterprise upgrade of OpenBMB's StaffDeck · desktop app">OpenBMB StaffDeck 企业级升级版 · 桌面客户端</div>
+            </div>
+          </div>
+          <h1 class="hero-title"
+              data-i18n-zh="AI 不止会聊天，<br><em>更要能上岗。</em>"
+              data-i18n-en="AI shouldn't just talk.<br><em>It should clock in.</em>">AI 不止会聊天，<br><em>更要能上岗。</em></h1>
+          <p class="hero-sub"
+             data-i18n-zh="基于 OpenBMB 的 StaffDeck 打造的企业级升级版。把员工的经验、流程与判断标准，固化成有岗位、有工号、能持续干活的数字员工：重复的活它们接手，个人经验沉淀成团队可复用的资产。macOS、Windows、Linux 桌面客户端，装好即用。"
+             data-i18n-en="An enterprise-grade upgrade built on OpenBMB's StaffDeck. It turns experience, process, and judgment into digital employees — each with a role, an ID, and work that gets done. They take over the repetitive jobs, and personal know-how becomes a reusable team asset. Desktop clients for macOS, Windows, and Linux.">基于 OpenBMB 的 StaffDeck 打造的企业级升级版。把员工的经验、流程与判断标准，固化成有岗位、有工号、能持续干活的数字员工：重复的活它们接手，个人经验沉淀成团队可复用的资产。macOS、Windows、Linux 桌面客户端，装好即用。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/StaffDeck/releases" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
+              <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/smarty-kiki/StaffDeck" target="_blank" rel="noopener"
+               data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
+          </div>
+          <div class="facts">
+            <span class="fact">macOS · Windows · Linux</span>
+            <span class="fact" data-i18n-zh="AGPL-3.0 开源" data-i18n-en="AGPL-3.0 open source">AGPL-3.0 开源</span>
+            <span class="fact" data-i18n-zh="可私有化部署" data-i18n-en="Self-hostable">可私有化部署</span>
+            <span class="fact" data-i18n-zh="基于 OpenBMB StaffDeck 的企业级升级版" data-i18n-en="Enterprise upgrade of OpenBMB's StaffDeck">基于 OpenBMB StaffDeck 的企业级升级版</span>
+          </div>
+        </div>
+
+        <!-- 数字员工名册演示（纯装饰） -->
+        <div class="mock" aria-hidden="true">
+          <div class="mock-panel sd-panel">
+            <div class="sd-bar">
+              <span class="sd-dots"><i></i><i></i><i></i></span>
+              <span class="sd-appname">StaffDeck</span>
+              <span class="sd-tabs">
+                <em data-i18n-zh="我的数字员工" data-i18n-en="My staff">我的数字员工</em>
+                <span data-i18n-zh="广场" data-i18n-en="Plaza">广场</span>
+              </span>
+            </div>
+
+            <div class="mp-head">
+              <span class="mp-title" data-i18n-zh="数字员工名册" data-i18n-en="Digital staff roster">数字员工名册</span>
+              <span class="mp-live"><i></i><span data-i18n-zh="3 人在岗" data-i18n-en="3 on duty">3 人在岗</span></span>
+            </div>
+
+            <ul class="sd-roster">
+              <li>
+                <span class="sd-avatar" style="--av: #2d75fe;">账</span>
+                <span class="sd-meta">
+                  <span class="sd-name">阿账 <small>SD-102</small></span>
+                  <span class="sd-task" data-i18n-zh="财务对账 · 今日已完成 12 单" data-i18n-en="Reconciliation · 12 done today">财务对账 · 今日已完成 12 单</span>
+                </span>
+                <span class="sd-state ok" data-i18n-zh="在岗" data-i18n-en="On duty">在岗</span>
+              </li>
+              <li>
+                <span class="sd-avatar" style="--av: #8a97ff;">合</span>
+                <span class="sd-meta">
+                  <span class="sd-name">小合 <small>SD-207</small></span>
+                  <span class="sd-task" data-i18n-zh="合同审阅 · SOP v3 执行中" data-i18n-en="Contract review · SOP v3 running">合同审阅 · SOP v3 执行中</span>
+                </span>
+                <span class="sd-state run" data-i18n-zh="执行中" data-i18n-en="Running">执行中</span>
+              </li>
+              <li>
+                <span class="sd-avatar" style="--av: #ffb020;">标</span>
+                <span class="sd-meta">
+                  <span class="sd-name">小标 <small>SD-315</small></span>
+                  <span class="sd-task" data-i18n-zh="投标助手 · 报价单等你复核" data-i18n-en="Bidding · quote awaiting your review">投标助手 · 报价单等你复核</span>
+                </span>
+                <span class="sd-state wait" data-i18n-zh="等你确认" data-i18n-en="Needs you">等你确认</span>
+              </li>
+            </ul>
+
+            <div class="mp-block">
+              <div class="mp-row">
+                <span class="mp-label" data-i18n-zh="执行轨迹 · 合同审阅" data-i18n-en="Run trace · contract review">执行轨迹 · 合同审阅</span>
+                <span class="mp-value" data-i18n-zh="第 3 步" data-i18n-en="Step 3">第 3 步</span>
+              </div>
+              <ul class="sd-trace">
+                <li class="done" data-i18n-zh="读取合同全文（42 页）" data-i18n-en="Read the full contract (42 pages)">读取合同全文（42 页）</li>
+                <li class="done" data-i18n-zh="比对风险条款库" data-i18n-en="Checked against the risk-clause library">比对风险条款库</li>
+                <li class="now" data-i18n-zh="标注 3 处待确认条款" data-i18n-en="Flagged 3 clauses for review">标注 3 处待确认条款</li>
+                <li data-i18n-zh="生成审阅报告" data-i18n-en="Generate the review report">生成审阅报告</li>
+              </ul>
+            </div>
+          </div>
+          <div class="sd-toast">
+            <i></i>
+            <span data-i18n-zh="合同审阅 · 有 1 处等你确认" data-i18n-en="Contract review · 1 item needs you">合同审阅 · 有 1 处等你确认</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 痛点 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="为什么做它" data-i18n-en="WHY">为什么做它</span>
+          <h2 class="section-title"
+              data-i18n-zh="会聊天的 AI 很多，能上岗的很少" data-i18n-en="Plenty of AI can chat. Few can clock in.">会聊天的 AI 很多，能上岗的很少</h2>
+          <p class="section-sub"
+             data-i18n-zh="真正的工作，要有人负责、按流程办、留得下记录。" data-i18n-en="Real work needs someone accountable, a process followed, and a record left behind.">真正的工作，要有人负责、按流程办、留得下记录。</p>
+        </div>
+
+        <div class="pain-grid">
+          <div class="pain-card">
+            <h3 data-i18n-zh="「人一变动，经验就归零」" data-i18n-en="&ldquo;When people move on, the know-how goes with them&rdquo;">「人一变动，经验就归零」</h3>
+            <p data-i18n-zh="老师傅的判断、老员工的火候，全在脑子里；交接靠嘴传，人一走就断档。"
+               data-i18n-en="The senior colleague's judgment lives in their head. Handovers are spoken, not written — and they leave with the person.">老师傅的判断、老员工的火候，全在脑子里；交接靠嘴传，人一走就断档。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="「流程很清楚，却总要人一单一单地做」" data-i18n-en="&ldquo;The process is clear — it just takes people, one by one&rdquo;">「流程很清楚，却总要人一单一单地做」</h3>
+            <p data-i18n-zh="对账、审合同、整理周报——每一步都写在文档里，执行还是靠人堆出来。"
+               data-i18n-en="Reconciling, reviewing contracts, writing weekly reports — every step is documented, yet every unit still costs a person.">对账、审合同、整理周报——每一步都写在文档里，执行还是靠人堆出来。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="「AI 很聪明，但不敢让它碰真业务」" data-i18n-en="&ldquo;The AI is smart — you just don't dare let it touch real work&rdquo;">「AI 很聪明，但不敢让它碰真业务」</h3>
+            <p data-i18n-zh="答得头头是道，真要动手时：权限怎么管？过程怎么查？出了偏差谁来接管？"
+               data-i18n-en="It answers convincingly, but when it's time to act: who scopes the permissions? Who can audit the process? Who takes over when it drifts?">答得头头是道，真要动手时：权限怎么管？过程怎么查？出了偏差谁来接管？</p>
+          </div>
+        </div>
+
+        <p class="pain-transition"
+           data-i18n-zh="StaffDeck 让经验留下来、让流程跑起来，每一步都<em>可查、可控、可接管</em>。"
+           data-i18n-en="StaffDeck keeps the know-how, runs the process, and makes every step <em>visible, controllable, and hand-over-ready</em>.">StaffDeck 让经验留下来、让流程跑起来，每一步都<em>可查、可控、可接管</em>。</p>
+      </div>
+    </section>
+
+    <!-- ============ 核心能力 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="核心能力" data-i18n-en="FEATURES">核心能力</span>
+          <h2 class="section-title"
+              data-i18n-zh="数字员工该有的样子" data-i18n-en="What a digital employee should be">数字员工该有的样子</h2>
+          <p class="section-sub"
+             data-i18n-zh="从岗位到执行，从过程到记录，一件不落。" data-i18n-en="From the role to the execution, from the process to the paper trail — nothing left out.">从岗位到执行，从过程到记录，一件不落。</p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M6 16.5c.8-1.8 1.9-2.6 3-2.6s2.2.8 3 2.6"/><line x1="15" y1="9.5" x2="18.5" y2="9.5"/><line x1="15" y1="13.5" x2="18.5" y2="13.5"/></svg>
+            </div>
+            <h3 data-i18n-zh="有岗位、有工号的数字员工" data-i18n-en="Digital employees with a role and an ID">有岗位、有工号的数字员工</h3>
+            <p data-i18n-zh="每位数字员工都有岗位、工号和能力档案，干过的活记进工作记录；能力不断成长，权限按岗位隔离，打磨好的员工还能发布给同事直接复用。"
+               data-i18n-en="Every digital employee has a role, an ID, and a capability profile — with a work log to match. They grow on the job, permissions stay scoped, and a well-trained employee can be published for teammates to reuse.">每位数字员工都有岗位、工号和能力档案，干过的活记进工作记录；能力不断成长，权限按岗位隔离，打磨好的员工还能发布给同事直接复用。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="15" y="15" width="6" height="6" rx="1.5"/><path d="M9 6h6a3 3 0 0 1 3 3v6"/></svg>
+            </div>
+            <h3 data-i18n-zh="职责写成人话，流程照章跑" data-i18n-en="Describe the job — it follows the playbook">职责写成人话，流程照章跑</h3>
+            <p data-i18n-zh="用自然语言描述岗位职责，自动生成结构化 SOP：复杂流程步步按规矩走，多个流程随时切换，改哪儿、改到第几版都看得见。"
+               data-i18n-en="Describe the role in plain language and it becomes a structured SOP. Complex processes run step by step, flows switch on the fly, and every edit is versioned and visible.">用自然语言描述岗位职责，自动生成结构化 SOP：复杂流程步步按规矩走，多个流程随时切换，改哪儿、改到第几版都看得见。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5z"/><path d="M2 12.5l10 5 10-5"/><path d="M2 17l10 5 10-5"/></svg>
+            </div>
+            <h3 data-i18n-zh="先定位、再精读的知识检索" data-i18n-en="It finds the right page, then reads it closely">先定位、再精读的知识检索</h3>
+            <p data-i18n-zh="数字员工先判断信息在哪份文档，再逐层读到原文，回答条条带出处——不是猜，是查过再说。"
+               data-i18n-en="It works out which document holds the answer, reads down to the source text, and cites where every claim came from. No guessing — it checks before it speaks.">数字员工先判断信息在哪份文档，再逐层读到原文，回答条条带出处——不是猜，是查过再说。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 4 14 11 14 10 22 20 9 13 9 13 2"/></svg>
+            </div>
+            <h3 data-i18n-zh="能动真格的" data-i18n-en="It actually does the work">能动真格的</h3>
+            <p data-i18n-zh="取数、填单、发请求、跑定时任务——真实业务动作直接做掉；你现有的系统和工具也能接进来，干完的活留下完整记录。"
+               data-i18n-en="Pulling numbers, filling forms, calling services, running on a schedule — real actions, actually done. It plugs into the systems you already use, and every run leaves a full record.">取数、填单、发请求、跑定时任务——真实业务动作直接做掉；你现有的系统和工具也能接进来，干完的活留下完整记录。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+            <h3 data-i18n-zh="每一步都可查，随时能接管" data-i18n-en="Every step auditable, every hand-off yours">每一步都可查，随时能接管</h3>
+            <p data-i18n-zh="完整执行记录 + 长期记忆：它做了什么、为什么这么做，随时回看；拿不准就真人接管，你的每次反馈都变成下一轮的改进。"
+               data-i18n-en="Full run histories and long-term memory — see what it did and why, any time. Step in as a human whenever it's unsure, and every piece of feedback feeds the next run.">完整执行记录 + 长期记忆：它做了什么、为什么这么做，随时回看；拿不准就真人接管，你的每次反馈都变成下一轮的改进。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/><line x1="6" y1="6.5" x2="6.01" y2="6.5"/><line x1="6" y1="17.5" x2="6.01" y2="17.5"/></svg>
+            </div>
+            <h3 data-i18n-zh="开源，而且能私有化部署" data-i18n-en="Open source, and yours to self-host">开源，而且能私有化部署</h3>
+            <p data-i18n-zh="AGPL-3.0 开源，本地、局域网、公网三种部署模式任选；数据留在自己手里，模型服务也用自己的。"
+               data-i18n-en="AGPL-3.0 open source, with local, LAN, or public deployment. Your data stays yours — and so does your choice of model.">AGPL-3.0 开源，本地、局域网、公网三种部署模式任选；数据留在自己手里，模型服务也用自己的。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 下载 ============ -->
+    <section class="section section-alt" id="download">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="下载" data-i18n-en="DOWNLOAD">下载</span>
+          <h2 class="section-title"
+              data-i18n-zh="选你的系统，装上就上岗" data-i18n-en="Pick your system. Clock in.">选你的系统，装上就上岗</h2>
+          <p class="section-sub"
+             data-i18n-zh="macOS、Windows、Linux 都有原生安装包，点任意卡片到 Releases 页面取最新版。" data-i18n-en="Native installers for macOS, Windows, and Linux — any card takes you to the Releases page for the latest build.">macOS、Windows、Linux 都有原生安装包，点任意卡片到 Releases 页面取最新版。</p>
+        </div>
+
+        <div class="dl-grid">
+          <a class="dl-card" href="https://github.com/smarty-kiki/StaffDeck/releases" target="_blank" rel="noopener">
+            <span class="dl-ico">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+            </span>
+            <span class="dl-meta">
+              <span class="dl-os">macOS</span>
+              <span class="dl-arch" data-i18n-zh="Apple 芯片（arm64）" data-i18n-en="Apple silicon (arm64)">Apple 芯片（arm64）</span>
+            </span>
+            <span class="dl-fmt">.dmg</span>
+          </a>
+
+          <a class="dl-card" href="https://github.com/smarty-kiki/StaffDeck/releases" target="_blank" rel="noopener">
+            <span class="dl-ico">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+            </span>
+            <span class="dl-meta">
+              <span class="dl-os">macOS</span>
+              <span class="dl-arch" data-i18n-zh="Intel 芯片（x86_64）" data-i18n-en="Intel (x86_64)">Intel 芯片（x86_64）</span>
+            </span>
+            <span class="dl-fmt">.dmg</span>
+          </a>
+
+          <a class="dl-card" href="https://github.com/smarty-kiki/StaffDeck/releases" target="_blank" rel="noopener">
+            <span class="dl-ico">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 3.449 9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+            </span>
+            <span class="dl-meta">
+              <span class="dl-os">Windows</span>
+              <span class="dl-arch" data-i18n-zh="64 位安装包" data-i18n-en="64-bit installer">64 位安装包</span>
+            </span>
+            <span class="dl-fmt">.exe</span>
+          </a>
+
+          <a class="dl-card" href="https://github.com/smarty-kiki/StaffDeck/releases" target="_blank" rel="noopener">
+            <span class="dl-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><polyline points="7.5 9 10.5 12 7.5 15"/><line x1="12.5" y1="15" x2="16.5" y2="15"/></svg>
+            </span>
+            <span class="dl-meta">
+              <span class="dl-os">Linux</span>
+              <span class="dl-arch" data-i18n-zh="Debian / Ubuntu（x86_64）" data-i18n-en="Debian / Ubuntu (x86_64)">Debian / Ubuntu（x86_64）</span>
+            </span>
+            <span class="dl-fmt">.deb</span>
+          </a>
+        </div>
+
+        <p class="dl-note"
+           data-i18n-zh="四张卡片统一指向本项目的 Releases 页面：发新版本不用改页，最新安装包永远在那里。也可以 <a href='https://github.com/smarty-kiki/StaffDeck' target='_blank' rel='noopener'>从源码部署</a>。"
+           data-i18n-en="All four cards lead to this project's Releases page — new versions land there automatically. You can also <a href='https://github.com/smarty-kiki/StaffDeck' target='_blank' rel='noopener'>build from source</a>.">四张卡片统一指向本项目的 Releases 页面：发新版本不用改页，最新安装包永远在那里。也可以 <a href='https://github.com/smarty-kiki/StaffDeck' target='_blank' rel='noopener'>从源码部署</a>。</p>
+      </div>
+    </section>
+
+    <!-- ============ 三步上手 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="快速上手" data-i18n-en="GET STARTED">快速上手</span>
+          <h2 class="section-title"
+              data-i18n-zh="三步，雇第一位数字员工" data-i18n-en="Three steps to your first digital employee">三步，雇第一位数字员工</h2>
+          <p class="section-sub"
+             data-i18n-zh="下载 → 接上模型 → 交给它第一条流程。" data-i18n-en="Download, connect your model, hand over the first process.">下载 → 接上模型 → 交给它第一条流程。</p>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <h3 data-i18n-zh="下载并安装" data-i18n-en="Download and install">下载并安装</h3>
+            <p data-i18n-zh="在上面选你系统对应的安装包，双击完成安装。"
+               data-i18n-en="Pick the installer for your system above and double-click to install.">在上面选你系统对应的安装包，双击完成安装。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <h3 data-i18n-zh="接上你的模型服务" data-i18n-en="Connect your model">接上你的模型服务</h3>
+            <p data-i18n-zh="首次启动按引导填入你的模型服务（OpenAI 兼容接口），就能开工。"
+               data-i18n-en="On first launch, follow the setup to add your OpenAI-compatible model endpoint — and you're in business.">首次启动按引导填入你的模型服务（OpenAI 兼容接口），就能开工。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <h3 data-i18n-zh="雇第一位数字员工" data-i18n-en="Hire your first employee">雇第一位数字员工</h3>
+            <p data-i18n-zh="起个名字、写清岗位职责，把第一条流程交给它跑起来。"
+               data-i18n-en="Give it a name, write down what the role is responsible for, and hand over the first process.">起个名字、写清岗位职责，把第一条流程交给它跑起来。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="常见问题" data-i18n-en="FAQ">常见问题</span>
+          <h2 class="section-title"
+              data-i18n-zh="你可能想问" data-i18n-en="You might be wondering">你可能想问</h2>
+        </div>
+
+        <div class="faq">
+          <details>
+            <summary data-i18n-zh="这个版本和 OpenBMB 的 StaffDeck 是什么关系？" data-i18n-en="How does this relate to OpenBMB's StaffDeck?">这个版本和 OpenBMB 的 StaffDeck 是什么关系？</summary>
+            <p class="faq-a"
+               data-i18n-zh="本项目基于 OpenBMB 开源的 StaffDeck 打造：保留原有架构与数据格式，在其上做企业级增强，功能与修复在这里先行落地。下载、更新都认准本仓库的 Releases。"
+               data-i18n-en="This project builds on OpenBMB's open-source StaffDeck: same architecture and data format, with enterprise-grade enhancements on top. Features and fixes land here first — downloads and updates come from this repository's Releases.">本项目基于 OpenBMB 开源的 StaffDeck 打造：保留原有架构与数据格式，在其上做企业级增强，功能与修复在这里先行落地。下载、更新都认准本仓库的 Releases。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="要花钱吗？" data-i18n-en="Does it cost anything?">要花钱吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不花。StaffDeck 以 AGPL-3.0 协议开源，客户端不收费；也可以从源码自行部署。"
+               data-i18n-en="No. StaffDeck is open source under AGPL-3.0 — the clients cost nothing, and you can deploy it from source yourself.">不花。StaffDeck 以 AGPL-3.0 协议开源，客户端不收费；也可以从源码自行部署。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="支持哪些系统？" data-i18n-en="Which systems are supported?">支持哪些系统？</summary>
+            <p class="faq-a"
+               data-i18n-zh="macOS（Apple 芯片 / Intel）、Windows x64、Linux（Debian / Ubuntu）都有桌面客户端，装好即用。"
+               data-i18n-en="Desktop clients for macOS (Apple silicon / Intel), Windows x64, and Linux (Debian / Ubuntu) — install and go.">macOS（Apple 芯片 / Intel）、Windows x64、Linux（Debian / Ubuntu）都有桌面客户端，装好即用。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="我的数据放在哪？" data-i18n-en="Where does my data live?">我的数据放在哪？</summary>
+            <p class="faq-a"
+               data-i18n-zh="支持本地、局域网、公网三种部署模式：数据存在哪、谁能访问，都由你决定。"
+               data-i18n-en="Local, LAN, or public deployment — you decide where the data lives and who can reach it.">支持本地、局域网、公网三种部署模式：数据存在哪、谁能访问，都由你决定。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="需要什么模型服务？" data-i18n-en="What model service does it need?">需要什么模型服务？</summary>
+            <p class="faq-a"
+               data-i18n-zh="接入你自己的 OpenAI 兼容模型接口：用哪家模型、怎么计费，都由你的账号决定。"
+               data-i18n-en="Bring your own OpenAI-compatible model endpoint — which model you use and how you're billed is up to you.">接入你自己的 OpenAI 兼容模型接口：用哪家模型、怎么计费，都由你的账号决定。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="它和聊天机器人有什么不同？" data-i18n-en="How is this different from a chatbot?">它和聊天机器人有什么不同？</summary>
+            <p class="faq-a"
+               data-i18n-zh="数字员工有岗位、工号和能力档案，按 SOP 执行真实业务，全过程留下记录，随时可以人工接管——比的不只是回答得好不好，而是活干得对不对。"
+               data-i18n-en="Digital employees have a role, an ID, and a capability profile. They execute real work along SOPs, log every step, and hand over to a human whenever needed. The bar isn't a good answer — it's a finished job.">数字员工有岗位、工号和能力档案，按 SOP 执行真实业务，全过程留下记录，随时可以人工接管——比的不只是回答得好不好，而是活干得对不对。</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="cta-band">
+          <h2 data-i18n-zh="给团队「雇」第一位数字员工" data-i18n-en="Hire your team's first digital employee">给团队「雇」第一位数字员工</h2>
+          <p data-i18n-zh="下载即用，装上就能开工。先从一条流程开始——让经验留下来，让活跑起来。"
+             data-i18n-en="Download it and get to work. Start with one process — keep the expertise, get the job done.">下载即用，装上就能开工。先从一条流程开始——让经验留下来，让活跑起来。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/StaffDeck/releases" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
+              <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/smarty-kiki/StaffDeck" target="_blank" rel="noopener"
+               data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n-zh="© 2026 StaffDeck 企业级升级版 · 基于 OpenBMB 的 StaffDeck · AGPL-3.0 开源" data-i18n-en="© 2026 StaffDeck Enterprise · Built on OpenBMB's StaffDeck · AGPL-3.0">© 2026 StaffDeck 企业级升级版 · 基于 OpenBMB 的 StaffDeck · AGPL-3.0 开源</span>
+      <span>
+        <a href="../../" data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/smarty-kiki/StaffDeck" target="_blank" rel="noopener">GitHub</a>
+      </span>
+    </div>
+  </footer>
+
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/hero-gl.js"></script>
+</body>
+</html>

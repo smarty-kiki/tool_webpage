@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n-zh="Kiki — 会指、会动手的 macOS 中文助手" data-i18n-en="Kiki — the macOS assistant that points, and acts">Kiki — 会指、会动手的 macOS 中文助手</title>
+  <meta name="description" data-i18n-zh="Kiki 住在 macOS 菜单栏：按住 Control+Option 说一句中文，它用中文回答，紫色光标飞到屏幕上那个东西上——该点的时候，它真的会点。开源，转写和识别都在本机完成。" data-i18n-en="Kiki lives in your macOS menu bar: hold Control+Option, speak in Chinese, and a purple cursor flies to the very thing you meant — and really clicks when it's time. Open source, transcription and recognition all on-device.">
+  <link rel="icon" type="image/png" href="../../assets/img/kiki.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    /* ===== Kiki 页专属：Finder 演示 mock + 页面小部件 ===== */
+
+    /* -- Hero 演示：深色访达窗口（贴一张真实应用感的截图） -- */
+    .kk-win {
+      border-radius: 14px;
+      background: linear-gradient(180deg, #1a1c21, #131417);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      font-size: 13px;
+    }
+    .kk-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.025);
+    }
+    .kk-lights { display: flex; gap: 7px; flex: none; }
+    .kk-lights i { width: 11px; height: 11px; border-radius: 50%; }
+    .kk-lights i:nth-child(1) { background: #ff5f57; }
+    .kk-lights i:nth-child(2) { background: #febc2e; }
+    .kk-lights i:nth-child(3) { background: #28c840; }
+    .kk-win-title { font-weight: 600; color: #ecedee; }
+    .kk-count { margin-left: auto; color: #83888f; font-size: 12px; }
+    .kk-path {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      color: #83888f;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .kk-path svg { width: 13px; height: 13px; flex: none; }
+    .kk-path .here { color: #c9cdd2; font-weight: 600; }
+    .kk-files { padding: 6px 8px 8px; }
+    .kk-files li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 8px;
+      border-radius: 8px;
+      color: #d5d8dc;
+    }
+    .kk-files li svg { width: 16px; height: 16px; flex: none; color: #83888f; }
+    .kk-meta { margin-left: auto; color: #787d84; font-size: 12px; }
+    .kk-target {
+      position: relative;
+      z-index: 2;
+      color: #fff;
+      background: rgba(189, 121, 255, 0.13);
+      box-shadow: inset 0 0 0 1px rgba(189, 121, 255, 0.5);
+    }
+    .kk-target svg { color: #bd79ff; }
+    .kk-target .kk-meta { color: #cbaef2; }
+    .kk-files .kk-cursor {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      width: 22px;
+      height: 22px;
+      transform: translateY(-42%);
+      filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.55));
+    }
+    .kk-tip {
+      position: absolute;
+      left: 30px;
+      top: calc(100% + 8px);
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+      background: #251b33;
+      border: 1px solid rgba(189, 121, 255, 0.55);
+      color: #f2eefb;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 11px;
+      border-radius: 9px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+    }
+    .kk-tip::before {
+      content: "";
+      position: absolute;
+      top: -5px;
+      left: 14px;
+      width: 8px;
+      height: 8px;
+      background: #251b33;
+      border-left: 1px solid rgba(189, 121, 255, 0.55);
+      border-top: 1px solid rgba(189, 121, 255, 0.55);
+      transform: rotate(45deg);
+    }
+    .kk-tip i { width: 7px; height: 7px; border-radius: 50%; background: #bd79ff; flex: none; }
+    .kk-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      color: #787d84;
+      font-size: 11.5px;
+    }
+    /* 说话胶囊：⌃⌥ + 声波 + 问题 */
+    .kk-voice {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: fit-content;
+      max-width: 100%;
+      margin: 18px auto 0;
+      padding: 9px 18px;
+      border-radius: 999px;
+      background: rgba(22, 22, 26, 0.94);
+      border: 1px solid rgba(189, 121, 255, 0.4);
+      box-shadow: 0 16px 40px rgba(70, 53, 25, 0.16), 0 0 0 5px rgba(189, 121, 255, 0.10);
+      color: #ecedee;
+      font-size: 13px;
+    }
+    .kk-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 5px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-bottom-width: 2px;
+      color: #c9cdd2;
+      font-size: 12px;
+      font-weight: 700;
+      flex: none;
+    }
+    .kk-wave { display: flex; align-items: center; gap: 3px; flex: none; }
+    .kk-wave i {
+      width: 3px;
+      height: 6px;
+      border-radius: 2px;
+      background: #bd79ff;
+      animation: kkWave 1.15s ease-in-out infinite;
+    }
+    .kk-wave i:nth-child(2) { animation-delay: 0.15s; }
+    .kk-wave i:nth-child(3) { animation-delay: 0.3s; }
+    .kk-wave i:nth-child(4) { animation-delay: 0.45s; }
+    .kk-wave i:nth-child(5) { animation-delay: 0.6s; }
+    @keyframes kkWave {
+      0%, 100% { height: 6px; opacity: 0.7; }
+      50%      { height: 15px; opacity: 1; }
+    }
+
+    /* -- 安全护栏横带 -- */
+    .kk-guard {
+      margin-top: 18px;
+      padding: 32px 36px;
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, transparent), transparent 62%),
+        var(--card);
+      border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+    }
+    .kk-guard-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 22px; }
+    .kk-guard-ico {
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
+      flex: none;
+      background: var(--accent-soft);
+      color: var(--accent-ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .kk-guard-ico svg { width: 21px; height: 21px; }
+    .kk-guard h3 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .kk-guard-head p { color: var(--muted); font-size: 14.5px; }
+    .kk-guard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 18px 22px;
+    }
+    .kk-guard-grid h4 { font-size: 14.5px; font-weight: 700; margin-bottom: 5px; }
+    .kk-guard-grid p { color: var(--muted); font-size: 13.5px; }
+
+    /* -- 隐私 / 花费双卡 -- */
+    .kk-split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .kk-card {
+      display: flex;
+      flex-direction: column;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 30px;
+    }
+    .kk-card h3 { font-size: 17.5px; font-weight: 800; margin-bottom: 8px; }
+    .kk-card > p { color: var(--muted); font-size: 14.5px; margin-bottom: 18px; }
+    .kk-card .tags { margin-top: auto; }
+
+    /* -- 行内代码（功能卡 / FAQ 里的小命令） -- */
+    .feature-card code, .faq-a code, .kk-card code {
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.85em;
+      background: rgba(30, 24, 12, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1px 6px;
+      color: var(--accent-ink);
+      word-break: break-all;
+    }
+    .note-body p code { display: inline; padding: 2px 7px; font-size: 12.5px; margin-top: 0; }
+
+    @media (max-width: 920px) {
+      .kk-split { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .kk-guard { padding: 26px 22px; }
+      .kk-guard-head { gap: 12px; }
+      .kk-voice { font-size: 12px; padding: 8px 14px; gap: 8px; }
+    }
+  </style>
+</head>
+<body style="--accent: #BD79FF;">
+
+  <header class="site-header">
+    <div class="container nav">
+      <a class="back-link" href="../../">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        <span data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</span>
+      </a>
+      <div class="nav-right">
+        <a class="nav-link hide-sm" href="https://github.com/smarty-kiki/Kiki" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="https://github.com/smarty-kiki/Kiki/releases" target="_blank" rel="noopener"
+           data-i18n-zh="下载" data-i18n-en="Download">下载</a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <canvas id="hero-gl" aria-hidden="true"
+              data-mode="cue" data-colors="#bd79ff,#ff878d,#8a97ff"></canvas>
+      <div class="container hero-inner">
+
+        <div class="hero-copy">
+          <div class="hero-app">
+            <img src="../../assets/img/kiki.png" alt="Kiki">
+            <div>
+              <div class="hero-app-name">Kiki</div>
+              <div class="hero-app-cat" data-i18n-zh="macOS 菜单栏中文助手" data-i18n-en="Chinese-speaking macOS menu bar assistant">macOS 菜单栏中文助手</div>
+            </div>
+          </div>
+          <h1 class="hero-title"
+              data-i18n-zh="再清楚的描述，<br><em>也不如指一下</em>。"
+              data-i18n-en="No description, however clear,<br><em>beats just pointing at it</em>.">再清楚的描述，<br><em>也不如指一下</em>。</h1>
+          <p class="hero-sub"
+             data-i18n-zh="按住 Control+Option 说一句中文，Kiki 用中文回答——紫色光标飞到屏幕上那个东西上，停在那儿。该点的时候，它真的会点。"
+             data-i18n-en="Hold Control+Option and speak. Kiki answers in Chinese — and a purple cursor flies to the very thing on your screen, then stays there. When it's time to click, it really clicks.">按住 Control+Option 说一句中文，Kiki 用中文回答——紫色光标飞到屏幕上那个东西上，停在那儿。该点的时候，它真的会点。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/Kiki/releases" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
+              <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/smarty-kiki/Kiki" target="_blank" rel="noopener"
+               data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
+          </div>
+          <div class="facts">
+            <span class="fact">macOS 14.2+</span>
+            <span class="fact" data-i18n-zh="MIT 开源" data-i18n-en="MIT open source">MIT 开源</span>
+            <span class="fact" data-i18n-zh="转写识别都在本机" data-i18n-en="On-device transcription">转写识别都在本机</span>
+            <span class="fact" data-i18n-zh="不占 Dock、不弹窗口" data-i18n-en="No Dock icon, no windows">不占 Dock、不弹窗口</span>
+          </div>
+        </div>
+
+        <!-- 指给你看：深色访达窗口 + 紫色光标停在目标上（纯装饰） -->
+        <div class="mock" aria-hidden="true">
+          <div class="kk-win">
+            <div class="kk-titlebar">
+              <span class="kk-lights"><i></i><i></i><i></i></span>
+              <span class="kk-win-title" data-i18n-zh="访达 — 财务" data-i18n-en="Finder — Finance">访达 — 财务</span>
+              <span class="kk-count" data-i18n-zh="6 个项目" data-i18n-en="6 items">6 个项目</span>
+            </div>
+            <div class="kk-path">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+              <span data-i18n-zh="财务" data-i18n-en="Finance">财务</span>
+              <span>›</span>
+              <span>2026</span>
+              <span>›</span>
+              <span class="here" data-i18n-zh="三季度" data-i18n-en="Q3">三季度</span>
+            </div>
+            <ul class="kk-files">
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                <span data-i18n-zh="2026 一季度" data-i18n-en="2026 Q1">2026 一季度</span>
+                <span class="kk-meta" data-i18n-zh="文件夹" data-i18n-en="Folder">文件夹</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                <span data-i18n-zh="2026 二季度" data-i18n-en="2026 Q2">2026 二季度</span>
+                <span class="kk-meta" data-i18n-zh="文件夹" data-i18n-en="Folder">文件夹</span>
+              </li>
+              <li class="kk-target">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span data-i18n-zh="Q3 季度报告.xlsx" data-i18n-en="Q3 report.xlsx">Q3 季度报告.xlsx</span>
+                <span class="kk-meta" data-i18n-zh="刚刚" data-i18n-en="just now">刚刚</span>
+                <svg class="kk-cursor" viewBox="0 0 24 24" fill="#BD79FF" stroke="#ffffff" stroke-width="1.1" stroke-linejoin="round"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+                <span class="kk-tip"><i></i><span data-i18n-zh="就是它 —— Q3 季度报告" data-i18n-en="That's the one — Q3 report">就是它 —— Q3 季度报告</span></span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span data-i18n-zh="预算摸底.xlsx" data-i18n-en="Budget draft.xlsx">预算摸底.xlsx</span>
+                <span class="kk-meta" data-i18n-zh="昨天" data-i18n-en="yesterday">昨天</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span data-i18n-zh="报销明细.xlsx" data-i18n-en="Expenses.xlsx">报销明细.xlsx</span>
+                <span class="kk-meta" data-i18n-zh="上周" data-i18n-en="last week">上周</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span data-i18n-zh="招待费清单.xlsx" data-i18n-en="Client dinners.xlsx">招待费清单.xlsx</span>
+                <span class="kk-meta" data-i18n-zh="上周" data-i18n-en="last week">上周</span>
+              </li>
+            </ul>
+            <div class="kk-status" data-i18n-zh="6 个项目，428 GB 可用" data-i18n-en="6 items, 428 GB available">6 个项目，428 GB 可用</div>
+          </div>
+          <div class="kk-voice">
+            <span class="kk-key">⌃</span>
+            <span class="kk-key">⌥</span>
+            <span class="kk-wave"><i></i><i></i><i></i><i></i><i></i></span>
+            <span data-i18n-zh="哪个文件是季度报告？" data-i18n-en="Which file is the quarterly report?">哪个文件是季度报告？</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 痛点 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="为什么做它" data-i18n-en="WHY">为什么做它</span>
+          <h2 class="section-title"
+              data-i18n-zh="AI 很聪明，只是够不着你的屏幕" data-i18n-en="Your AI is smart — it just can't reach your screen">AI 很聪明，只是够不着你的屏幕</h2>
+          <p class="section-sub"
+             data-i18n-zh="它什么都知道，却点不了屏幕上任何一样东西——动手的永远是你。"
+             data-i18n-en="It knows everything, yet can't click a single thing on screen. So the doing is always left to you.">它什么都知道，却点不了屏幕上任何一样东西——动手的永远是你。</p>
+        </div>
+
+        <div class="pain-grid">
+          <div class="pain-card">
+            <h3 data-i18n-zh="「右上角那个按钮」" data-i18n-en="&ldquo;That button, top right&rdquo;">「右上角那个按钮」</h3>
+            <p data-i18n-zh="用文字描述屏幕上的位置，一句话打三十个字，对方还得猜。"
+               data-i18n-en="Describing where things are, in words — thirty characters a sentence, and it still has to guess.">用文字描述屏幕上的位置，一句话打三十个字，对方还得猜。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="指路的是它，找路的还是你" data-i18n-en="It gives directions. You still do the walking.">指路的是它，找路的还是你</h3>
+            <p data-i18n-zh="「先点设置，再进高级选项」——话说得很对，然后你还得自己找、自己点。"
+               data-i18n-en="&ldquo;Open Settings, then Advanced.&rdquo; Perfect instructions — and you're still the one finding and clicking.">「先点设置，再进高级选项」——话说得很对，然后你还得自己找、自己点。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="每天几十次一模一样的点击" data-i18n-en="The same clicks, dozens of times a day">每天几十次一模一样的点击</h3>
+            <p data-i18n-zh="打开、切走、点回来，同样的鼠标动作重复一整天，纯体力活。"
+               data-i18n-en="Open, switch away, click back — identical mouse moves on repeat, all day long.">打开、切走、点回来，同样的鼠标动作重复一整天，纯体力活。</p>
+          </div>
+        </div>
+
+        <p class="pain-transition"
+           data-i18n-zh="Kiki 换了个活法：<em>不描述，直接指</em>——该动手时，还能替你动手。"
+           data-i18n-en="Kiki does it differently: <em>no describing — it points</em>. And when it's time to act, it acts.">Kiki 换了个活法：<em>不描述，直接指</em>——该动手时，还能替你动手。</p>
+      </div>
+    </section>
+
+    <!-- ============ 功能 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="核心功能" data-i18n-en="FEATURES">核心功能</span>
+          <h2 class="section-title"
+              data-i18n-zh="说句中文，剩下的交给它" data-i18n-en="Say it in Chinese — Kiki takes it from there">说句中文，剩下的交给它</h2>
+          <p class="section-sub"
+             data-i18n-zh="回答、指路、点击、滚动、输入，都真实发生在你的屏幕上，每一步都看得见。"
+             data-i18n-en="Answers, pointing, clicking, scrolling, typing — all happening for real on your screen, every step in sight.">回答、指路、点击、滚动、输入，都真实发生在你的屏幕上，每一步都看得见。</p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 3 7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/><path d="m13 13 6 6"/></svg>
+            </div>
+            <h3 data-i18n-zh="指给你看" data-i18n-en="It points">指给你看</h3>
+            <p data-i18n-zh="「哪个文件是季度报告？」话一说完，紫色光标飞过屏幕，停在那个文件上——你得到的不是一段文字描述，是那个东西本身。"
+               data-i18n-en="&ldquo;Which file is the quarterly report?&rdquo; The moment you finish, a purple cursor flies across the screen and lands on it — what you get isn't a description, it's the thing itself.">「哪个文件是季度报告？」话一说完，紫色光标飞过屏幕，停在那个文件上——你得到的不是一段文字描述，是那个东西本身。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="6"/><path d="M12 6v4"/></svg>
+            </div>
+            <h3 data-i18n-zh="真的动手" data-i18n-en="And it acts">真的动手</h3>
+            <p data-i18n-zh="单击、双击、三击、右键、四向滚动、拖拽，它都会。动手之前，光标先变红，还会带上你的鼠标一起过去——你看得见它要去哪。"
+               data-i18n-en="Click, double-click, triple-click, right-click, scroll in four directions, drag — it does them all. Before it acts, the cursor turns red and carries your own mouse along, so you can see where it's headed.">单击、双击、三击、右键、四向滚动、拖拽，它都会。动手之前，光标先变红，还会带上你的鼠标一起过去——你看得见它要去哪。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
+            </div>
+            <h3 data-i18n-zh="多步任务，自己走完" data-i18n-en="Multi-step, all the way">多步任务，自己走完</h3>
+            <p data-i18n-zh="一句话交给它一串操作：每做完一步，它重新看一眼屏幕，再决定下一步，最多连做 20 步。上下文自动折叠，面板上能看到它「脑子用了多少」。"
+               data-i18n-en="Hand it a chain of actions in one sentence: after each step it looks at the screen again before deciding the next, up to 20 steps deep. The context folds itself, and the panel shows how much of its &lsquo;brain&rsquo; is in use.">一句话交给它一串操作：每做完一步，它重新看一眼屏幕，再决定下一步，最多连做 20 步。上下文自动折叠，面板上能看到它「脑子用了多少」。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.6 5.4a9 9 0 0 1 0 13.2"/></svg>
+            </div>
+            <h3 data-i18n-zh="边做边念" data-i18n-en="It talks you through">边做边念</h3>
+            <p data-i18n-zh="干活的时候它会出声念出来——念到哪一句，光标就停在哪个东西上。进度听得见，位置看得见。"
+               data-i18n-en="While it works, it speaks — and the cursor rests on whatever the current sentence is about. Hear the progress, see the position.">干活的时候它会出声念出来——念到哪一句，光标就停在哪个东西上。进度听得见，位置看得见。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="currentColor" stroke="none"/></svg>
+            </div>
+            <h3 data-i18n-zh="录一遍，循环回放" data-i18n-en="Record once, replay on loop">录一遍，循环回放</h3>
+            <p data-i18n-zh="一段重复操作：按 Shift+Option 录下你的鼠标动作，再按一下开始循环重放，第三下停下。「每天点三十遍」变成按一下。"
+               data-i18n-en="For repetitive work: press Shift+Option to record your mouse moves, press again to loop the replay, a third time to stop. &lsquo;Thirty clicks a day&rsquo; becomes one keystroke.">一段重复操作：按 Shift+Option 录下你的鼠标动作，再按一下开始循环重放，第三下停下。「每天点三十遍」变成按一下。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            </div>
+            <h3 data-i18n-zh="命令行也能编排" data-i18n-en="Scriptable from the CLI">命令行也能编排</h3>
+            <p data-i18n-zh="懂命令行的话，语音那套都能写成脚本：<code>kiki command</code> 一次编排一串手势——11 个子命令（单击、双击、三击、右键、四向滚动、拖拽、输入、按键）不花一分钱；<code>kiki screenshot</code>、<code>kiki locate</code> 只读看屏幕，安静不动手。"
+               data-i18n-en="If you live in a terminal, the whole thing scripts: <code>kiki command</code> chains gestures — 11 subcommands (click, double-click, triple-click, right-click, four-way scroll, drag, type, key) cost nothing at all; <code>kiki screenshot</code> and <code>kiki locate</code> look at the screen read-only, without touching anything.">懂命令行的话，语音那套都能写成脚本：<code>kiki command</code> 一次编排一串手势——11 个子命令（单击、双击、三击、右键、四向滚动、拖拽、输入、按键）不花一分钱；<code>kiki screenshot</code>、<code>kiki locate</code> 只读看屏幕，安静不动手。</p>
+          </div>
+        </div>
+
+        <!-- 安全护栏 -->
+        <div class="kk-guard">
+          <div class="kk-guard-head">
+            <span class="kk-guard-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><polyline points="9 12 11 14 15 10"/></svg>
+            </span>
+            <div>
+              <h3 data-i18n-zh="它知道自己不该动手" data-i18n-en="It knows when not to act">它知道自己不该动手</h3>
+              <p data-i18n-zh="越界的事，它宁可停下，也不硬来——鼠标和键盘的控制权，还有两个开关随时收回。"
+                 data-i18n-en="It would rather stop than overstep — and two switches can take mouse and keyboard control back at any moment.">越界的事，它宁可停下，也不硬来——鼠标和键盘的控制权，还有两个开关随时收回。</p>
+            </div>
+          </div>
+          <div class="kk-guard-grid">
+            <div>
+              <h4 data-i18n-zh="危险词不点" data-i18n-en="Dangerous words, no click">危险词不点</h4>
+              <p data-i18n-zh="碰到「删除」「卸载」「格式化」这类词，它拒绝下手。"
+                 data-i18n-en="Words like &lsquo;delete&rsquo;, &lsquo;uninstall&rsquo;, &lsquo;format&rsquo; — it refuses to act on them.">碰到「删除」「卸载」「格式化」这类词，它拒绝下手。</p>
+            </div>
+            <div>
+              <h4 data-i18n-zh="权限没给，不动" data-i18n-en="No permission, no action">权限没给，不动</h4>
+              <p data-i18n-zh="系统权限没给全，它宁可什么都不做，也不绕路。"
+                 data-i18n-en="If a system permission is missing, it does nothing rather than working around it.">系统权限没给全，它宁可什么都不做，也不绕路。</p>
+            </div>
+            <div>
+              <h4 data-i18n-zh="说到一半，不算数" data-i18n-en="Half-said doesn't count">说到一半，不算数</h4>
+              <p data-i18n-zh="你还没说完就冒出来的请求，它挡回来，并告诉你原因。"
+                 data-i18n-en="A request that slips in before you've finished gets turned down — with the reason why.">你还没说完就冒出来的请求，它挡回来，并告诉你原因。</p>
+            </div>
+            <div>
+              <h4>⌘⇧⌫ <span data-i18n-zh="从不按" data-i18n-en="never pressed">从不按</span></h4>
+              <p data-i18n-zh="这类危险的系统快捷键，它从来不碰。"
+                 data-i18n-en="That dangerous system shortcut — it never touches it.">这类危险的系统快捷键，它从来不碰。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 隐私与花费 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="隐私与花费" data-i18n-en="PRIVACY &amp; COST">隐私与花费</span>
+          <h2 class="section-title"
+              data-i18n-zh="你的屏幕，只在你的 Mac 上" data-i18n-en="Your screen stays on your Mac">你的屏幕，只在你的 Mac 上</h2>
+          <p class="section-sub"
+             data-i18n-zh="该在本机做的，绝不往外送；要花钱的地方，只有一处。"
+             data-i18n-en="Everything that can stay on-device does. And there's exactly one thing that costs money.">该在本机做的，绝不往外送；要花钱的地方，只有一处。</p>
+        </div>
+
+        <div class="kk-split">
+          <div class="kk-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+            <h3 data-i18n-zh="离开你 Mac 的，只有截图和那句话" data-i18n-en="Only a screenshot and your sentence ever leave">离开你 Mac 的，只有截图和那句话</h3>
+            <p data-i18n-zh="转写、朗读、抓屏、认字，全在你本机完成——不联网也能把话转成字。唯一的凭据是你自己的 DeepSeek API Key，锁在 macOS 钥匙串里；没有账号，也没有别人的服务器。"
+               data-i18n-en="Transcription, speech, screen capture, text recognition — all on-device, and transcription even works offline. The only credential is your own DeepSeek API key, locked in the macOS Keychain. No account, no one else's server.">转写、朗读、抓屏、认字，全在你本机完成——不联网也能把话转成字。唯一的凭据是你自己的 DeepSeek API Key，锁在 macOS 钥匙串里；没有账号，也没有别人的服务器。</p>
+            <div class="tags">
+              <span class="tag" data-i18n-zh="转写在本机" data-i18n-en="Transcription on-device">转写在本机</span>
+              <span class="tag" data-i18n-zh="认字在本机" data-i18n-en="Recognition on-device">认字在本机</span>
+              <span class="tag" data-i18n-zh="无账号、无服务器" data-i18n-en="No account, no server">无账号、无服务器</span>
+            </div>
+          </div>
+
+          <div class="kk-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/><path d="M14.5 9.5A2.5 2.5 0 0 0 12 8c-1.4 0-2.5.8-2.5 2s1.1 2 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2a2.5 2.5 0 0 1-2.5-1.5"/></svg>
+            </div>
+            <h3 data-i18n-zh="花钱吗？只花你自己的用量" data-i18n-en="Costs? Just your own API usage">花钱吗？只花你自己的用量</h3>
+            <p data-i18n-zh="应用本体开源、不收费。语音、手势、命令行都不花钱；只有让模型动脑的时候，才走你自己的 DeepSeek 账号——用多少花多少。模型还能选：默认 Flash 快而省，V4 Pro 更聪明。"
+               data-i18n-en="The app itself is open source and costs nothing. Voice, gestures, and the CLI cost nothing either; only when the model has to think does it use your own DeepSeek account — pay for what you use. And you pick the model: Flash (default) for fast and light, V4 Pro for more brains.">应用本体开源、不收费。语音、手势、命令行都不花钱；只有让模型动脑的时候，才走你自己的 DeepSeek 账号——用多少花多少。模型还能选：默认 Flash 快而省，V4 Pro 更聪明。</p>
+            <div class="tags">
+              <span class="tag" data-i18n-zh="手势命令不花钱" data-i18n-en="Gestures cost nothing">手势命令不花钱</span>
+              <span class="tag" data-i18n-zh="只用自己的 Key" data-i18n-en="Your own key only">只用自己的 Key</span>
+              <span class="tag">Flash / V4 Pro</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 三步上手 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="快速上手" data-i18n-en="GET STARTED">快速上手</span>
+          <h2 class="section-title"
+              data-i18n-zh="三步，请它上岗" data-i18n-en="Three steps to put it to work">三步，请它上岗</h2>
+          <p class="section-sub"
+             data-i18n-zh="不用注册、不用登录——权限给完那一刻，就能开口说话。"
+             data-i18n-en="No sign-up, no login — the moment permissions are in, just start talking.">不用注册、不用登录——权限给完那一刻，就能开口说话。</p>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <h3 data-i18n-zh="下载" data-i18n-en="Download">下载</h3>
+            <p data-i18n-zh="到 GitHub Releases 下载 Kiki 的最新安装包（.dmg），拖进「应用程序」。"
+               data-i18n-en="Grab the latest Kiki installer (.dmg) from GitHub Releases and drag it into Applications.">到 GitHub Releases 下载 Kiki 的最新安装包（.dmg），拖进「应用程序」。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <h3 data-i18n-zh="放行一次" data-i18n-en="Allow it once">放行一次</h3>
+            <p data-i18n-zh="没做公证，首次打开 macOS 会拦一下——照提示放行一次就好。看到「已损坏」提示的，展开下面的说明。"
+               data-i18n-en="Not notarized, so macOS blocks the first launch — allow it once and you're set. Seeing a &lsquo;damaged&rsquo; warning? Open the note below.">没做公证，首次打开 macOS 会拦一下——照提示放行一次就好。看到「已损坏」提示的，展开下面的说明。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <h3 data-i18n-zh="给权限，填上 Key" data-i18n-en="Grant permissions, add your key">给权限，填上 Key</h3>
+            <p data-i18n-zh="面板会逐条告诉你缺哪项权限、现在走到哪一步；再把你的 DeepSeek API Key 填进去（存在钥匙串里）。就绪——按住 Control+Option 说话。"
+               data-i18n-en="The panel walks you through each permission and where you are; then paste in your DeepSeek API key (it goes to the Keychain). Done — hold Control+Option and talk.">面板会逐条告诉你缺哪项权限、现在走到哪一步；再把你的 DeepSeek API Key 填进去（存在钥匙串里）。就绪——按住 Control+Option 说话。</p>
+          </div>
+        </div>
+
+        <details class="note">
+          <summary data-i18n-zh="打开时提示「无法验证开发者」或「已损坏」？" data-i18n-en="macOS says &ldquo;cannot verify the developer&rdquo; — or worse, &ldquo;damaged&rdquo;?">打开时提示「无法验证开发者」或「已损坏」？</summary>
+          <div class="note-body">
+            <p data-i18n-zh="这个应用没有 Apple 开发者证书、没有做公证，所以首次打开会被 Gatekeeper 拦一下。放行一次即可："
+               data-i18n-en="The app isn't notarized (no Apple Developer certificate), so Gatekeeper stops the first launch. You only need to allow it once:">这个应用没有 Apple 开发者证书、没有做公证，所以首次打开会被 Gatekeeper 拦一下。放行一次即可：</p>
+            <ol>
+              <li data-i18n-zh="先双击打开一次，macOS 会提示无法验证开发者；"
+                  data-i18n-en="Try opening the app once — macOS will say it cannot verify the developer.">先双击打开一次，macOS 会提示无法验证开发者；</li>
+              <li data-i18n-zh="打开「系统设置 → 隐私与安全性」，在底部找到被拦的提示，点「仍要打开」。"
+                  data-i18n-en="Open System Settings → Privacy &amp; Security, find the blocked message, and click Open Anyway.">打开「系统设置 → 隐私与安全性」，在底部找到被拦的提示，点「仍要打开」。</li>
+            </ol>
+            <p data-i18n-zh="或者，在终端执行一次这条命令，之后就能正常打开："
+               data-i18n-en="Or run this once in Terminal, then open normally:">或者，在终端执行一次这条命令，之后就能正常打开：</p>
+            <code>xattr -dr com.apple.quarantine /Applications/Kiki.app</code>
+            <p style="margin-top: 12px;"
+               data-i18n-zh="还有一点：请始终从「应用程序」里双击启动（或者用 <code>open -a Kiki</code>）。直接运行程序文件的话，屏幕录制权限会算到终端头上，Kiki 反而拿不到。"
+               data-i18n-en="One more thing: always launch from Applications by double-clicking (or with <code>open -a Kiki</code>). Run the binary directly, and the screen-recording permission lands on your terminal instead of Kiki.">还有一点：请始终从「应用程序」里双击启动（或者用 <code>open -a Kiki</code>）。直接运行程序文件的话，屏幕录制权限会算到终端头上，Kiki 反而拿不到。</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="常见问题" data-i18n-en="FAQ">常见问题</span>
+          <h2 class="section-title"
+              data-i18n-zh="你可能想问" data-i18n-en="You might be wondering">你可能想问</h2>
+        </div>
+
+        <div class="faq">
+          <details>
+            <summary data-i18n-zh="要花钱吗？" data-i18n-en="Does it cost anything?">要花钱吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="Kiki 本体不收费，MIT 协议开源。语音、手势、命令行都不花钱；唯一的开销是你自己的 DeepSeek 用量——Flash 很省，V4 Pro 更聪明，也更费一点。"
+               data-i18n-en="Kiki itself costs nothing and is MIT-licensed. Voice, gestures, and the CLI cost nothing. The only spend is your own DeepSeek usage — Flash is very light; V4 Pro is smarter and costs a little more.">Kiki 本体不收费，MIT 协议开源。语音、手势、命令行都不花钱；唯一的开销是你自己的 DeepSeek 用量——Flash 很省，V4 Pro 更聪明，也更费一点。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="它能看到我屏幕上的一切吗？" data-i18n-en="Can it see everything on my screen?">它能看到我屏幕上的一切吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="它只在需要的时候抓取屏幕来认字、找位置；离开你 Mac 的，只有截图和你说出的那句话。转写、朗读、抓屏、认字全在本机完成，不联网也能把话转成字。"
+               data-i18n-en="It captures the screen only when it needs to read and locate things — and only a screenshot and your spoken sentence ever leave your Mac. Transcription, speech, capture, and recognition all run on-device; transcription even works offline.">它只在需要的时候抓取屏幕来认字、找位置；离开你 Mac 的，只有截图和你说出的那句话。转写、朗读、抓屏、认字全在本机完成，不联网也能把话转成字。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="要注册账号吗？" data-i18n-en="Do I need an account?">要注册账号吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不用。没有账号、没有服务器、没有登录——唯一的凭据是你自己的 DeepSeek API Key，存在 macOS 钥匙串里。"
+               data-i18n-en="No. No account, no server, no sign-in — the only credential is your own DeepSeek API key, kept in the macOS Keychain.">不用。没有账号、没有服务器、没有登录——唯一的凭据是你自己的 DeepSeek API Key，存在 macOS 钥匙串里。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="它会不会误删我的东西？" data-i18n-en="Can it delete things by mistake?">它会不会误删我的东西？</summary>
+            <p class="faq-a"
+               data-i18n-zh="危险操作它不点：碰到「删除」「卸载」「格式化」这类词会拒绝下手；权限没给全就不动；没说完的请求会被挡回来并说明原因。⌘⇧⌫ 这类危险快捷键更是从来不按，鼠标和键盘的控制权还有两个开关随时收回。"
+               data-i18n-en="Dangerous actions are off-limits: words like &lsquo;delete&rsquo;, &lsquo;uninstall&rsquo;, &lsquo;format&rsquo; make it refuse; missing permissions make it stop; unfinished requests get turned down with a reason. It never presses shortcuts like ⌘⇧⌫ — and two switches take mouse and keyboard control back instantly.">危险操作它不点：碰到「删除」「卸载」「格式化」这类词会拒绝下手；权限没给全就不动；没说完的请求会被挡回来并说明原因。⌘⇧⌫ 这类危险快捷键更是从来不按，鼠标和键盘的控制权还有两个开关随时收回。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="支持哪些 Mac？" data-i18n-en="Which Macs are supported?">支持哪些 Mac？</summary>
+            <p class="faq-a"
+               data-i18n-zh="macOS 14.2 及以上。Apple 芯片和 Intel 芯片都是同一个安装包（通用二进制）。"
+               data-i18n-en="macOS 14.2 or later. Apple silicon and Intel Macs share one universal installer.">macOS 14.2 及以上。Apple 芯片和 Intel 芯片都是同一个安装包（通用二进制）。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="会开机自启吗？" data-i18n-en="Does it start at login?">会开机自启吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不会。Kiki 刻意没做开机启动项——不用它的时候，它就不在。"
+               data-i18n-en="No. Kiki deliberately ships without a login item — when you're not using it, it isn't there.">不会。Kiki 刻意没做开机启动项——不用它的时候，它就不在。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="怎么在命令行里用？" data-i18n-en="How do I use it from the terminal?">怎么在命令行里用？</summary>
+            <p class="faq-a"
+               data-i18n-zh="在面板里点一下按钮，会建好 <code>/usr/local/bin/kiki</code> 的软链接。之后 <code>kiki command '…'</code> 就能编排手势，<code>kiki screenshot</code>、<code>kiki locate '确定'</code> 只读看屏幕。"
+               data-i18n-en="One button in the panel creates a <code>/usr/local/bin/kiki</code> symlink. After that, <code>kiki command '…'</code> scripts gestures, while <code>kiki screenshot</code> and <code>kiki locate</code> watch the screen read-only.">在面板里点一下按钮，会建好 <code>/usr/local/bin/kiki</code> 的软链接。之后 <code>kiki command '…'</code> 就能编排手势，<code>kiki screenshot</code>、<code>kiki locate '确定'</code> 只读看屏幕。</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="cta-band">
+          <h2 data-i18n-zh="现在，让光标替你指路" data-i18n-en="Let the cursor do the pointing">现在，让光标替你指路</h2>
+          <p data-i18n-zh="下载即用，一分钟装好。下一句「在哪儿」，让紫色光标替你回答。"
+             data-i18n-en="Download and go — a minute to set up. The next time you ask &lsquo;where?&rsquo;, let the purple cursor answer.">下载即用，一分钟装好。下一句「在哪儿」，让紫色光标替你回答。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/Kiki/releases" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
+              <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/smarty-kiki/Kiki" target="_blank" rel="noopener"
+               data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n-zh="© 2026 Kiki · 基于 MIT 协议开源" data-i18n-en="© 2026 Kiki · Open source under the MIT license">© 2026 Kiki · 基于 MIT 协议开源</span>
+      <span>
+        <a href="../../" data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/smarty-kiki/Kiki" target="_blank" rel="noopener">GitHub</a>
+      </span>
+    </div>
+  </footer>
+
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/hero-gl.js"></script>
+</body>
+</html>

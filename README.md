@@ -19,18 +19,26 @@ tool_webpage/
 │   │   │   └── index.html            # 梦游 Wiki 介绍页（网页产品，跳转即逛）
 │   │   ├── research-docs/
 │   │   │   └── index.html            # 研和讨介绍页（网页产品，跳转即用）
-│   │   └── news/
-│   │       └── index.html            # 纽斯（新闻知识库）介绍页（Agent Skill，引导装进智能体）
+│   │   ├── news/
+│   │   │   └── index.html            # 纽斯（新闻知识库）介绍页（Agent Skill，引导装进智能体）
+│   │   ├── staffdeck/
+│   │   │   └── index.html            # StaffDeck 企业级升级版介绍页（基于 OpenBMB 的 StaffDeck，四平台安装包入口）
+│   │   └── kiki/
+│   │       └── index.html            # Kiki 介绍页（macOS 菜单栏中文助手，下载引导）
 │   └── assets/
-│       ├── css/style.css             # 全站共享设计系统（深色主题）
+│       ├── css/style.css             # 全站共享设计系统（浅色暖调；产品 mock 保持深色）
 │       ├── js/i18n.js                # 中英双语切换
+│       ├── js/hero-gl.js             # 各页 hero 的 WebGL2 动态背景（flow/queue/trace/net/wire/sop/cue 七种模式，无 WebGL 自动回退 CSS 光斑）
+│       ├── js/hero-3d.js             # 掼蛋 / 梦游两页的 three.js 3D 场景（动态 import，失败即退 CSS）
+│       ├── js/home.js                # 首页专属：卡片聚光/浮现
+│       ├── vendor/                   # three.js 固定版本（仅 3D 页面懒加载）
 │       └── img/                      # 各工具图标、favicon
 └── project/
     ├── tool_webpage.Caddyfile        # Caddy 静态托管配置（product.yao-yang.cn）
     └── after_push.sh                 # 部署脚本：软链 Caddyfile 并 reload
 ```
 
-按产品类型区分 CTA：macOS 应用引导去 GitHub Releases 下载；网页产品（无源码引导）直接跳转线上地址使用；Agent Skill 引导把 skill 装进自己的智能体（主 CTA 跳产品站，页面内附安装口令，无下载、无源码引导）。
+按产品类型区分 CTA：macOS 应用与跨平台应用的下载按钮统一指向各项目 GitHub 仓库的 Releases 页面（不带版本号，发新版本无需改页）；网页产品（无源码引导）直接跳转线上地址使用；Agent Skill 引导把 skill 装进自己的智能体（主 CTA 跳产品站，页面内附安装口令，无下载、无源码引导）；StaffDeck 页提供 macOS / Windows / Linux 四张平台卡片（企业级升级版，基于 OpenBMB 的 StaffDeck），同样统一落到本项目 Releases 页面。
 
 ## 双语机制
 

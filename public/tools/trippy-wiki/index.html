@@ -112,6 +112,8 @@
 
     <!-- ============ Hero ============ -->
     <section class="hero">
+      <canvas id="hero-gl" aria-hidden="true"
+              data-engine="three" data-scene="nebula" data-colors="#8a97ff,#c77dff,#6ee7d8"></canvas>
       <div class="container hero-inner">
 
         <div class="hero-copy">
@@ -135,7 +137,7 @@
             </a>
           </div>
           <div class="facts">
-            <span class="fact" data-i18n-zh="免费开逛" data-i18n-en="Free to browse">免费开逛</span>
+            <span class="fact" data-i18n-zh="「飘」「拉」投票" data-i18n-en="Float-or-flame votes">「飘」「拉」投票</span>
             <span class="fact" data-i18n-zh="注册送 10 万积分" data-i18n-en="100k credits on sign-up">注册送 10 万积分</span>
             <span class="fact" data-i18n-zh="AI 帮你写词条" data-i18n-en="AI writes it up">AI 帮你写词条</span>
             <span class="fact" data-i18n-zh="无需安装" data-i18n-en="No install needed">无需安装</span>
@@ -304,8 +306,8 @@
         <details class="note">
           <summary data-i18n-zh="积分用完了怎么办？" data-i18n-en="What happens when credits run out?">积分用完了怎么办？</summary>
           <div class="note-body">
-            <p data-i18n-zh="积分只在 AI 创作时消耗。用完后可以在站内充值继续写；逛词条和投票不受影响，永远免费。"
-               data-i18n-en="Credits are only spent on AI writing. Top up on-site when you run out; browsing and voting are unaffected — and always free.">积分只在 AI 创作时消耗。用完后可以在站内充值继续写；逛词条和投票不受影响，永远免费。</p>
+            <p data-i18n-zh="积分只在 AI 创作时消耗。用完后可以在站内充值继续写；逛词条和投票不受影响，一直不收费。"
+               data-i18n-en="Credits are only spent on AI writing. Top up on-site when you run out; browsing and voting are unaffected — and never cost anything.">积分只在 AI 创作时消耗。用完后可以在站内充值继续写；逛词条和投票不受影响，一直不收费。</p>
           </div>
         </details>
       </div>
@@ -330,8 +332,8 @@
           <details>
             <summary data-i18n-zh="要花钱吗？" data-i18n-en="Does it cost money?">要花钱吗？</summary>
             <p class="faq-a"
-               data-i18n-zh="逛词条和投票免费，注册送 10 万积分用于 AI 创作；用完了可以站内充值。"
-               data-i18n-en="Browsing and voting are free, and you start with 100,000 credits for AI writing; top up on-site when you need more.">逛词条和投票免费，注册送 10 万积分用于 AI 创作；用完了可以站内充值。</p>
+               data-i18n-zh="逛词条和投票不收费，注册送 10 万积分用于 AI 创作；用完了可以站内充值。"
+               data-i18n-en="Browsing and voting cost nothing, and you start with 100,000 credits for AI writing; top up on-site when you need more.">逛词条和投票不收费，注册送 10 万积分用于 AI 创作；用完了可以站内充值。</p>
           </details>
           <details>
             <summary data-i18n-zh="内容都是 AI 写的吗？" data-i18n-en="Is the content all AI-written?">内容都是 AI 写的吗？</summary>
@@ -370,5 +372,6 @@
   </footer>
 
   <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/hero-gl.js"></script>
 </body>
 </html>

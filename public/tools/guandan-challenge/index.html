@@ -131,6 +131,8 @@
 
     <!-- ============ Hero ============ -->
     <section class="hero">
+      <canvas id="hero-gl" aria-hidden="true"
+              data-engine="three" data-scene="cards" data-colors="#e2b052,#f2d49a,#d98e3f"></canvas>
       <div class="container hero-inner">
 
         <div class="hero-copy">
@@ -155,7 +157,7 @@
           </div>
           <div class="facts">
             <span class="fact" data-i18n-zh="无需注册" data-i18n-en="No sign-up">无需注册</span>
-            <span class="fact" data-i18n-zh="免费开玩" data-i18n-en="Free to play">免费开玩</span>
+            <span class="fact" data-i18n-zh="四个 AI 同桌" data-i18n-en="Four AIs at one table">四个 AI 同桌</span>
             <span class="fact" data-i18n-zh="数据只存浏览器" data-i18n-en="Data stays in your browser">数据只存浏览器</span>
             <span class="fact" data-i18n-zh="支持 4 家模型" data-i18n-en="4 model providers">支持 4 家模型</span>
           </div>
@@ -364,8 +366,8 @@
         <details class="note">
           <summary data-i18n-zh="玩一局要花钱吗？" data-i18n-en="Does a game cost money?">玩一局要花钱吗？</summary>
           <div class="note-body">
-            <p data-i18n-zh="网站本身免费。模型调用走你自己的 API Key，费用由各服务商按 token 用量收取——挂机刷分时记得留意一下各家的额度。"
-               data-i18n-en="The site itself is free. Model calls use your own API key and are billed by each provider based on token usage — keep an eye on your quota during long sessions.">网站本身免费。模型调用走你自己的 API Key，费用由各服务商按 token 用量收取——挂机刷分时记得留意一下各家的额度。</p>
+            <p data-i18n-zh="网站本身不收费。模型调用走你自己的 API Key，费用由各服务商按 token 用量收取——挂机刷分时记得留意一下各家的额度。"
+               data-i18n-en="The site itself costs nothing. Model calls use your own API key and are billed by each provider based on token usage — keep an eye on your quota during long sessions.">网站本身不收费。模型调用走你自己的 API Key，费用由各服务商按 token 用量收取——挂机刷分时记得留意一下各家的额度。</p>
           </div>
         </details>
       </div>
@@ -436,5 +438,6 @@
   </footer>
 
   <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/hero-gl.js"></script>
 </body>
 </html>
