@@ -9,7 +9,7 @@
 
    配置（canvas 的 data 属性）：
      data-engine="gl"（默认）| "three"
-     data-mode="flow"（默认）| "queue" | "trace" | "net" | "wire" | "sop" | "cue" —— gl 引擎
+     data-mode="flow"（默认）| "queue" | "scan" | "net" | "wire" | "sop" | "cue" —— gl 引擎
      data-scene="cards" | "nebula"                     —— three 引擎
      data-colors="#a,#b,#c"   三色品牌色，缺省从 --accent 推导
      data-speed="1"           速度倍率
@@ -55,7 +55,7 @@
   var colB = parseHex(colors[1]) || [0.369, 0.647, 0.980];   /* 蓝 */
   var colC = parseHex(colors[2]) || [0.541, 0.592, 1.000];   /* 紫 */
 
-  var MODES = { flow: 0, queue: 1, trace: 2, net: 3, wire: 4, sop: 5, cue: 6 };
+  var MODES = { flow: 0, queue: 1, scan: 2, net: 3, wire: 4, sop: 5, cue: 6 };
   var mode = MODES[canvas.getAttribute('data-mode')] || 0;
   var speed = parseFloat(canvas.getAttribute('data-speed')) || 1;
   var dot = parseFloat(canvas.getAttribute('data-dot'));
@@ -115,6 +115,7 @@
     'uniform vec3  u_colB;',
     'uniform vec3  u_colC;',
     'uniform float u_dot;',
+    'uniform sampler2D u_glyphs;',   /* scan 模式：64 个字符的图集（8x8 格） */
     '',
     'float hash(vec2 p) {',
     '  p = fract(p * vec2(123.34, 456.21));',
@@ -181,6 +182,14 @@
     '  vec2 ba = b - a;',
     '  float q = clamp(dot(pa - a, ba) / max(dot(ba, ba), 1e-4), 0.0, 1.0);',
     '  return vec2(length(pa - a - ba * q), q);',
+    '}',
+    '',
+    '/* scan 模式：从字符图集里取出第 g 个字的形状；f 是格内坐标（f.y：1 = 格子顶部） */',
+    '/* 图集上传时没翻转 Y（画布顶行 → v=0），所以这里把 f.y 翻过来采样，字才是正的 */',
+    'float glyphMask(float g, vec2 f) {',
+    '  g = mod(g, 64.0);',
+    '  vec2 auv = (vec2(mod(g, 8.0), floor(g / 8.0)) + clamp(vec2(f.x, 1.0 - f.y), 0.03, 0.97)) / 8.0;',
+    '  return textureLod(u_glyphs, auv, 1.0).r;',   /* 固定 mip 层：格子在屏幕上约 32px，正好对上 LOD1 */
     '}',
     '',
     'void main() {',
@@ -277,52 +286,53 @@
     '    col = mix(col, mix(vec3(1.0), u_colB, 0.80), lC * 0.60);',
     '    col = mix(col, vec3(1.0), halo * 0.28);',
     '  } else if (u_mode == 2) {',
-    '    /* ---- trace：实时监护——活动像波形扫过每条会话道，到端点一下灯，然后归于平静 ---- */',
-    '    float ut = u_time;',
-    '    vec2 wp = p + sway * 0.4;',
-    '    float ly = (wp.y - 0.10) / 0.19;',
-    '    float row = floor(ly);',
-    '    float fy = fract(ly) - 0.5;',
-    '    float h = hash(vec2(row, 4.2));',
-    '    float laneOn = smoothstep(0.14, 0.30, hash(vec2(row, 8.8)));',  /* 留白几道，别铺满 */
-    '    float edge = smoothstep(0.0, 0.05, uv.x) * smoothstep(1.0, 0.95, uv.x);',
-    '    float cyc = 6.5 + 4.5 * hash(vec2(row, 2.6));',                 /* 每道自己的忙闲周期 */
-    '    float ph = fract(ut / cyc + h);',
-    '    float onRun = 1.0 - step(0.60, ph);',                           /* 前 60%：一次活动扫过 */
-    '    float cx = mix(-0.30, aspect + 0.30, clamp(ph / 0.60, 0.0, 1.0));',
-    '    float ex = wp.x - cx;',
-    '    float env = exp(-ex * ex * 42.0);',                             /* 活动包本体 */
-    '    env += 0.70 * exp(-max(-ex, 0.0) * 6.5) * step(ex, 0.0);',      /* 身后拖尾：刚忙过，慢慢平静 */
-    '    env *= onRun;',
-    '    float wig = (vnoise(vec2(wp.x * 2.3 - ut * 0.55, row * 7.7 + h * 13.0)) - 0.5) * 1.4',
-    '              + (vnoise(vec2(wp.x * 5.1 - ut * 2.10, row * 3.3 - h * 7.0)) - 0.5) * 0.7;',
-    '    float off = wig * (0.010 + 0.070 * env);',                      /* 忙=起伏，闲=近乎平线 */
-    '    float ld = fy * 0.19 - off;',
-    '    float line = exp(-ld * ld * 42000.0) * laneOn;',
-    '    float heat = clamp(env, 0.0, 1.0);',
-    '    vec3 lineCol = mix(u_colC, mix(u_colA, u_colB, 0.30), smoothstep(0.06, 0.45, heat));',
-    '    float head = exp(-(ex * ex * 700.0 + ld * ld * 20000.0)) * onRun;',
-    '    float headGlow = exp(-(ex * ex * 180.0 + ld * ld * 9000.0)) * onRun * 0.14;',
-    '    float xe = aspect - 0.10;',                                     /* 每道右端的状态灯 */
-    '    float de = length(vec2(wp.x - xe, fy * 0.19));',
-    '    float lit = exp(-pow(xe - cx, 2.0) * 42.0) * onRun;',
-    '    float ph2 = ph - 0.60;',                                        /* 活动到站：叮一下 */
-    '    float done = exp(-ph2 * ph2 * 220.0) * step(0.0, ph2) * laneOn;',
-    '    float rr = clamp(ph2 / 0.12, 0.0, 1.0) * 0.090;',
-    '    float ring = smoothstep(0.010, 0.0, abs(de - rr)) * (1.0 - clamp(ph2 * 7.0, 0.0, 1.0)) * step(0.0, ph2) * laneOn;',
-    '    float endDot = smoothstep(0.024, 0.006, de) * laneOn;',
+    '    /* ---- scan：数码字符流穿过画面，扫描头从后面追上来，把它们成片读走分析 ---- */',
+    '    float ut = mod(u_time, 7200.0);',
+    '    vec2 wp = p + sway * 0.35;',
+    '    float chars = 0.0;   /* 字符流本体 */',
+    '    float warm  = 0.0;   /* 刚被读过的余温 */',
+    '    float beams = 0.0;   /* 扫描头的光带 */',
+    '    float edge = smoothstep(0.0, 0.06, uv.x) * smoothstep(1.0, 0.94, uv.x);',
+    '    for (int n = 0; n < 7; n++) {',
+    '      float L = float(n);',
+    '      float rl = hash(vec2(L, 2.2));',
+    '      float cy = 0.12 + (L + (hash(vec2(L, 9.3)) - 0.5) * 0.6) * 0.108;',  /* 行高 */
+    '      float dy = wp.y - cy;',
+    '      if (abs(dy) < 0.046) {',
+    '        float cellW = 0.030;',
+    '        float off = ut * (0.055 + 0.045 * rl) + rl * 7.0;',      /* 每道流速略不同 */
+    '        float px = wp.x - off;',
+    '        float ci = floor(px / cellW);',
+    '        float ciw = mod(ci, 128.0);',
+    '        vec2 f = vec2(fract(px / cellW), dy / 0.040 + 0.5);',
+    '        float flick = floor(ut * (2.5 + 2.0 * rl) + hash(vec2(ciw, L)) * 9.0);',  /* 逐格换字 */
+    '        float g = floor(hash(vec2(ciw * 1.7 + L * 7.3, flick)) * 64.0);',
+    '        float m = glyphMask(g, f);',
+    '        float gate = smoothstep(0.046, 0.014, abs(dy));',
+    '        /* 扫描头：每道自有节奏，比字符跑得快，从后面一路追上去 */',
+    '        float ph = fract(ut / (7.0 + 5.0 * hash(vec2(L, 6.6))) + hash(vec2(L, 1.8)));',
+    '        float onRun = 1.0 - step(0.55, ph);',
+    '        float sx = -0.45 + clamp(ph / 0.55, 0.0, 1.0) * (aspect + 0.9);',
+    '        float cx = wp.x + (0.5 - fract(px / cellW)) * cellW;',   /* 这一格此刻的位置 */
+    '        float lead = cx - sx;',
+    '        float pre  = exp(-max(lead, 0.0) * 7.0) * onRun;',       /* 即将被读到：提亮 */
+    '        float read = exp(-max(-lead, 0.0) * 5.0) * step(lead, 0.0)',
+    '                   * (1.0 - smoothstep(0.55, 0.78, ph));',       /* 读过：余温慢慢退去 */
+    '        float bx = wp.x - sx;',
+    '        beams += exp(-bx * bx * 1700.0) * gate * onRun * 0.42;',
+    '        chars += m * gate * (0.15 + 0.30 * pre);',
+    '        warm  += m * gate * read * 0.95;',
+    '      }',
+    '    }',
     '    float focus = 0.55 + 0.85 * halo;',
-    '    float lLine = clamp(line * (0.18 + 0.72 * heat) * focus * edge, 0.0, 1.0);',
-    '    float lHead = clamp((head + headGlow) * focus * edge, 0.0, 1.0);',
-    '    float lDot  = clamp(endDot * (0.16 + 0.40 * lit) * focus, 0.0, 1.0);',
-    '    float lDone = clamp(endDot * done * focus, 0.0, 1.0);',
-    '    float lRing = clamp(ring * focus, 0.0, 1.0);',
-    '    density = clamp(line * (0.2 + 0.5 * heat) + head * 0.8 + endDot * (0.1 + done), 0.0, 1.0);',
-    '    col = mix(col, mix(vec3(1.0), lineCol, 0.55), lLine * 0.90);',
-    '    col = mix(col, mix(vec3(1.0), u_colB, 0.72), lDot * 0.85);',
-    '    col = mix(col, mix(vec3(1.0), u_colA, 0.75), lHead * 0.95);',
-    '    col = mix(col, mix(vec3(1.0), u_colB, 0.70), lRing * 0.80);',
-    '    col = mix(col, mix(vec3(1.0), u_colA, 0.80), lDone * 0.95);',
+    '    vec3 ink = vec3(0.40, 0.45, 0.56);',                         /* 冷灰蓝的数码墨水 */
+    '    float lChars = clamp(chars * focus * edge, 0.0, 1.0);',
+    '    float lWarm = clamp(warm * focus * edge, 0.0, 1.0);',
+    '    float lBeam = clamp(beams * focus * edge, 0.0, 1.0);',
+    '    density = clamp(chars * 0.50 + warm * 0.60 + beams * 0.50, 0.0, 1.0);',
+    '    col = mix(col, mix(vec3(1.0), ink, 0.60), lChars * 0.55);',
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.80), lWarm * 0.78);',
+    '    col = mix(col, mix(vec3(1.0), u_colB, 0.70), lBeam * 0.50);',
     '    col = mix(col, vec3(1.0), halo * 0.28);',
     '  } else if (u_mode == 3) {',
     '    /* ---- net：知识网络——节点织成网，连线间信号奔跑，光标附近整片被唤醒 ---- */',
@@ -516,6 +526,35 @@
     gl.compileShader(sh);
     return gl.getShaderParameter(sh, gl.COMPILE_STATUS) ? sh : null;
   }
+
+  /* scan 模式的字符图集：白字黑底的 8x8 网格（64 个字符），只建一次 */
+  var GLYPH_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij<>/\\|=+*#$%@&{}[]()';
+  function makeGlyphTexture() {
+    var cell = 64, side = 512;
+    var cv = document.createElement('canvas');
+    cv.width = side;
+    cv.height = side;
+    var ctx = cv.getContext('2d');
+    if (!ctx) return null;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, side, side);
+    ctx.fillStyle = '#fff';
+    ctx.font = '600 42px Menlo, Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (var i = 0; i < GLYPH_CHARS.length && i < 64; i++) {
+      ctx.fillText(GLYPH_CHARS.charAt(i), (i % 8) * cell + 32, Math.floor(i / 8) * cell + 34);
+    }
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return tex;
+  }
   var vs = compile(gl.VERTEX_SHADER, VERT);
   var fs = compile(gl.FRAGMENT_SHADER, FRAG);
   if (!vs || !fs) return;
@@ -536,6 +575,8 @@
   gl.uniform3fv(gl.getUniformLocation(prog, 'u_colB'), colB);
   gl.uniform3fv(gl.getUniformLocation(prog, 'u_colC'), colC);
   gl.uniform1f(gl.getUniformLocation(prog, 'u_dot'), dot);
+  /* 字符图集挂到 0 号纹理单元（只有 scan 模式会采样；建失败就少了字符层，其余画面照常） */
+  if (makeGlyphTexture()) gl.uniform1i(gl.getUniformLocation(prog, 'u_glyphs'), 0);
 
   var dpr = 1;
   function resize() {

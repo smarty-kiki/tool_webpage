@@ -28,7 +28,7 @@ tool_webpage/
 │   └── assets/
 │       ├── css/style.css             # 全站共享设计系统（浅色暖调；产品 mock 保持深色）
 │       ├── js/i18n.js                # 中英双语切换
-│       ├── js/hero-gl.js             # 各页 hero 的 WebGL2 动态背景（flow/queue/trace/net/wire/sop/cue 七种模式，无 WebGL 自动回退 CSS 光斑）
+│       ├── js/hero-gl.js             # 各页 hero 的 WebGL2 动态背景（flow/queue/scan/net/wire/sop/cue 七种模式，无 WebGL 自动回退 CSS 光斑）
 │       ├── js/hero-3d.js             # 掼蛋 / 梦游两页的 three.js 3D 场景（动态 import，失败即退 CSS）
 │       ├── js/home.js                # 首页专属：卡片聚光/浮现
 │       ├── vendor/                   # three.js 固定版本（仅 3D 页面懒加载）
