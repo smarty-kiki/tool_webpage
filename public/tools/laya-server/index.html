@@ -79,6 +79,10 @@
       padding: 1px 6px;
     }
 
+    /* 长命令行别把栅格顶宽：栅格/弹性子项默认 min-width:auto，
+       nowrap 的 .cmd 会按 min-content 把整列撑开，页面跟着横向溢出 */
+    .route-card, .steps .step { min-width: 0; }
+
     /* 窗口行为：一张朴素的操作对照表 */
     .ls-behave {
       margin-top: 24px;
@@ -110,6 +114,8 @@
       .ls-behave { padding: 4px 18px 10px; }
       .ls-behave li { flex-direction: column; gap: 4px; }
       .ls-behave .k { flex: none; }
+      /* 小屏上命令整行折开，不横滚 */
+      .cmd { white-space: normal; word-break: break-all; }
     }
   </style>
 </head>
