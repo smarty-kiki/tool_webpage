@@ -9,7 +9,7 @@
 
    配置（canvas 的 data 属性）：
      data-engine="gl"（默认）| "three"
-     data-mode="flow"（默认）| "queue" | "scan" | "net" | "wire" | "sop" | "cue" —— gl 引擎
+     data-mode="flow"（默认）| "queue" | "scan" | "net" | "wire" | "sop" | "cue" | "local" —— gl 引擎
      data-scene="cards" | "nebula"                     —— three 引擎
      data-colors="#a,#b,#c"   三色品牌色，缺省从 --accent 推导
      data-speed="1"           速度倍率
@@ -55,7 +55,7 @@
   var colB = parseHex(colors[1]) || [0.369, 0.647, 0.980];   /* 蓝 */
   var colC = parseHex(colors[2]) || [0.541, 0.592, 1.000];   /* 紫 */
 
-  var MODES = { flow: 0, queue: 1, scan: 2, net: 3, wire: 4, sop: 5, cue: 6 };
+  var MODES = { flow: 0, queue: 1, scan: 2, net: 3, wire: 4, sop: 5, cue: 6, local: 7 };
   var mode = MODES[canvas.getAttribute('data-mode')] || 0;
   var speed = parseFloat(canvas.getAttribute('data-speed')) || 1;
   var dot = parseFloat(canvas.getAttribute('data-dot'));
@@ -167,6 +167,21 @@
     '/* sop 模式：第 gi 个检查点的 x 坐标（每道轻微错位，避免列对齐太死板） */',
     'float sopGateX(float row, float gi) {',
     '  return (gi + 0.5) * 0.34 + (hash(vec2(row * 3.1, gi + 17.0)) - 0.5) * 0.11;',
+    '}',
+    '',
+    '/* local 模式：超椭圆（squircle）在方向 d 上的边界半径（|d| 为单位向量时，',
+    '   返回中心沿该方向到边界的距离；点 R(d)*d 恰好落在曲线上） */',
+    'float localEdge(vec2 d, vec2 hh, float n) {',
+    '  vec2 a = abs(d) / hh;',
+    '  float e = pow(a.x, n) + pow(a.y, n);',
+    '  return pow(max(e, 1e-6), -1.0 / n);',
+    '}',
+    '',
+    '/* local 模式：点到超椭圆边界的近似距离（f / |∇f|，够画细线） */',
+    'float localDist(vec2 c, vec2 hh, float n) {',
+    '  vec2 a = abs(c) / hh;',
+    '  vec2 g = n * vec2(pow(a.x, n - 1.0) / hh.x, pow(a.y, n - 1.0) / hh.y);',
+    '  return (pow(a.x, n) + pow(a.y, n) - 1.0) / max(length(g), 1e-4);',
     '}',
     '',
     '/* cue 模式：第 k 个目标的位置（哈希散布；同一 k 位置恒定，光标不会跳） */',
@@ -435,6 +450,72 @@
     '    col = mix(col, mix(vec3(1.0), u_colA, 0.85), lDone * 0.80);',   /* 已完成：主品牌蓝 */
     '    col = mix(col, mix(vec3(1.0), u_colB, 0.55), lLine * 0.50);',   /* 工序道 */
     '    col = mix(col, mix(vec3(1.0), u_colA, 0.70), lHead * 0.90);',   /* 进度头 */
+    '    col = mix(col, vec3(1.0), halo * 0.30);',
+    '  } else if (u_mode == 7) {',
+    '    /* ---- local：本机闭环——推理核心被超椭圆边界环抱，光点沿轨道奔跑、',
+    '            定期螺旋俯冲进核心算一发再回轨道；所有动静都不出最外圈 ---- */',
+    '    float ut = u_time;',
+    '    vec2 wp = p + sway * 0.4;',
+    '    vec2 C = vec2(aspect * 0.335, 0.50);',
+    '    vec2 rel = wp - C;',
+    '    vec3 ringC = vec3(0.0);',                        /* 轨道线（按主色累积） */
+    '    vec3 orbitC = vec3(0.0);',                       /* 沿线奔跑的光点 */
+    '    vec3 diveC = vec3(0.0);',                        /* 俯冲进核心的光点 */
+    '    float coreHit = 0.0;',                           /* 本帧核心是否被喂到 */
+    '    float grow = 1.0 + 0.05 * sin(ut * 0.7);',       /* 最外圈轻轻呼吸 */
+    '    for (int k = 0; k < 3; k++) {',
+    '      float fk = float(k);',
+    '      vec3 tc = k == 0 ? u_colA : (k == 1 ? u_colB : u_colC);',
+    '      vec2 hh = vec2(0.098) * (1.0 + fk * 0.62) * mix(1.0, grow, step(1.5, fk));',
+    '      float ld = localDist(rel, hh, 4.0);',
+    '      float edge = smoothstep(0.0028, 0.0, abs(ld));',
+    '      ringC += tc * (edge * (0.50 + 0.28 * fk) + exp(-ld * ld * 1600.0) * 0.09);',
+    '      float dir = mod(fk, 2.0) < 0.5 ? 1.0 : -1.0;',   /* 相邻轨道反向跑 */
+    '      float sp = dir * (0.40 + 0.13 * fk);',
+    '      for (int j = 0; j < 2; j++) {',
+    '        float fj = float(j);',
+    '        float th = ut * sp + fk * 2.4 + fj * 3.14159 + hash(vec2(fk, fj)) * 0.8;',
+    '        vec2 d2 = vec2(cos(th), sin(th));',
+    '        vec2 q = C + d2 * localEdge(d2, hh, 4.0);',    /* 光点贴着轨道线跑 */
+    '        float dd = length(wp - q);',
+    '        orbitC += tc * (exp(-dd * dd * 15000.0) * 0.95 + exp(-dd * dd * 900.0) * 0.16);',
+    '      }',
+    '      /* 俯冲：每颗光点按自己的周期螺旋进核心，算完一发再回轨道 */',
+    '      float per = 8.2 - 1.7 * fk;',
+    '      float ph = fract(ut / per + hash(vec2(fk, 3.3)));',
+    '      float dw = smoothstep(0.52, 0.70, ph) * (1.0 - smoothstep(0.80, 0.97, ph));',
+    '      float de = dw * dw * (3.0 - 2.0 * dw);',
+    '      float thd = ut * sp * 0.55 + fk * 2.4 + 1.3;',
+    '      vec2 d3 = vec2(cos(thd), sin(thd));',
+    '      float rad = mix(localEdge(d3, hh, 4.0), 0.014, de);',
+    '      vec2 qd = C + d3 * rad;',
+    '      float ddq = length(wp - qd);',
+    '      diveC += tc * exp(-ddq * ddq * mix(15000.0, 30000.0, de)) * 1.10;',
+    '      coreHit = max(coreHit, (1.0 - smoothstep(0.02, 0.07, rad)) * de);',
+    '    }',
+    '    /* 核心：一枚小芯片轮廓，被俯冲光点喂出心跳式的闪光 */',
+    '    float dcen = length(rel);',
+    '    float dcore = localDist(rel, vec2(0.042), 4.0);',
+    '    float chip = smoothstep(0.0026, 0.0, abs(dcore));',
+    '    float coreBody = (1.0 - smoothstep(-0.004, 0.010, dcore)) * 0.16;',
+    '    float flash = coreHit * (exp(-dcen * dcen * 760.0) + exp(-dcen * dcen * 90.0) * 0.28);',
+    '    /* 最外圈之内：极淡一层底色，把「机器里」的范围圈出来 */',
+    '    float inside = 1.0 - smoothstep(-0.030, 0.006, localDist(rel, vec2(0.098 * 2.24) * grow, 4.0));',
+    '    float focus = 0.55 + 0.85 * halo;',
+    '    float lRing = clamp(length(ringC) * focus, 0.0, 1.0);',
+    '    float lOrbit = clamp(length(orbitC) * focus, 0.0, 1.0);',
+    '    float lDive = clamp(length(diveC) * focus, 0.0, 1.0);',
+    '    float lCore = clamp((chip * 0.90 + coreBody + flash * 0.90) * focus, 0.0, 1.0);',
+    '    vec3 cRing = ringC / max(length(ringC), 1e-4);',
+    '    vec3 cOrbit = orbitC / max(length(orbitC), 1e-4);',
+    '    vec3 cDive = diveC / max(length(diveC), 1e-4);',
+    '    density = clamp(lRing * 0.55 + lOrbit * 0.70 + lDive * 0.80 + lCore * 0.70, 0.0, 1.0);',
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.10), inside * 0.22);',
+    '    col = mix(col, mix(vec3(1.0), cRing, 0.55), lRing * 0.45);',
+    '    col = mix(col, mix(vec3(1.0), cOrbit, 0.80), lOrbit * 0.70);',
+    '    col = mix(col, mix(vec3(1.0), cDive, 0.85), lDive * 0.80);',
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.40), lCore * 0.80);',   /* 核心：淡青芯片 */
+    '    col = mix(col, vec3(1.0), clamp(flash, 0.0, 1.0) * focus * 0.45);',
     '    col = mix(col, vec3(1.0), halo * 0.30);',
     '  } else {',
     '    /* ---- cue：指哪打哪——光标弧线飞向目标、收缩锁定圈、点中泛起红色涟漪 ---- */',
