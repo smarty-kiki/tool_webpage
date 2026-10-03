@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n-zh="Scheduler — 复制一下，一键就进日历" data-i18n-en="Scheduler — copy once, one click to schedule it">Scheduler — 复制一下，一键就进日历</title>
+  <meta name="description" data-i18n-zh="常驻菜单栏的 macOS 日程助手：复制一段文字或一张截图，Scheduler 在后台把它认成结构化日程——标题、起止、地点、参与人，一键写进系统日历。写入之前，时间冲突与重复日程都已替你看过。没有服务端、没有账号，识别直连你自己的 DeepSeek。MIT 开源。" data-i18n-en="A macOS scheduling assistant that lives in your menu bar: copy a piece of text or a screenshot, and Scheduler turns it into a structured event in the background — title, start and end, place, attendees — written to your calendar in one click. Conflicts and duplicates are checked before anything is written. No server, no account, and recognition goes straight to your own DeepSeek. MIT open source.">
+  <link rel="icon" type="image/png" href="../../assets/img/scheduler.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    /* ===== Scheduler 页专属：真机面板 + 识别通知 + 界面一览 ===== */
+
+    /* -- Hero：菜单栏面板截图（浅色画面套一层相框） -- */
+    .sc-panel {
+      margin: 0 0 0 auto;
+      width: min(292px, 62%);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(30, 24, 12, 0.13);
+      background: #fff;
+      box-shadow: 0 30px 80px rgba(70, 53, 25, 0.18), 0 2px 10px rgba(70, 53, 25, 0.06);
+    }
+    .sc-panel img { display: block; width: 100%; height: auto; }
+
+    /* -- Hero：识别完成的通知（叠在面板左下角） -- */
+    .sc-note {
+      position: absolute;
+      left: 0;
+      bottom: 4px;
+      z-index: 2;
+      width: min(312px, 74%);
+      padding: 13px 15px 11px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(30, 24, 12, 0.1);
+      box-shadow: 0 24px 60px rgba(70, 53, 25, 0.22), 0 2px 8px rgba(70, 53, 25, 0.08);
+      color: #23253a;
+    }
+    .sc-note-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+    .sc-note-head img { width: 24px; height: 24px; border-radius: 7px; flex: none; }
+    .sc-note-app { font-size: 12.5px; font-weight: 700; color: #3a3d52; }
+    .sc-note-when { margin-left: auto; font-size: 11.5px; color: #8b90a4; }
+    .sc-note-title { font-size: 13.5px; font-weight: 800; margin-bottom: 4px; }
+    .sc-note-title i {
+      font-style: normal;
+      font-size: 10.5px;
+      font-weight: 700;
+      vertical-align: 1px;
+      margin-left: 5px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      color: var(--accent-ink);
+      background: var(--accent-soft);
+    }
+    .sc-note-line { font-size: 13px; font-weight: 600; }
+    .sc-note-meta { font-size: 12.5px; color: #6f7488; }
+    .sc-note-btns { display: flex; gap: 8px; margin-top: 12px; }
+    .sc-note-btn {
+      flex: 1;
+      text-align: center;
+      padding: 7px 0;
+      border-radius: 9px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #3a3d52;
+      background: rgba(30, 24, 12, 0.055);
+      border: 1px solid rgba(30, 24, 12, 0.1);
+    }
+    .sc-note-btn.primary { color: #fff; background: var(--accent); border-color: var(--accent); }
+
+    /* -- 安静的菜单栏公民（横带） -- */
+    .sc-guard {
+      margin-top: 18px;
+      padding: 32px 36px;
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, transparent), transparent 62%),
+        var(--card);
+      border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+    }
+    .sc-guard-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 22px; }
+    .sc-guard-ico {
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
+      flex: none;
+      background: var(--accent-soft);
+      color: var(--accent-ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sc-guard-ico svg { width: 21px; height: 21px; }
+    .sc-guard h3 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .sc-guard-head p { color: var(--muted); font-size: 14.5px; }
+    .sc-guard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 18px 22px;
+    }
+    .sc-guard-grid h4 { font-size: 14.5px; font-weight: 700; margin-bottom: 5px; }
+    .sc-guard-grid p { color: var(--muted); font-size: 13.5px; }
+
+    /* -- 界面一览：真机截图两列画廊 -- */
+    .sc-shots {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      max-width: 880px;
+      margin: 32px auto 0;
+    }
+    .sc-shot {
+      margin: 0;
+      padding: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 28px rgba(70, 53, 25, 0.07);
+    }
+    .sc-shot img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      border: 1px solid rgba(30, 24, 12, 0.1);
+      background: #fff;
+    }
+    .sc-shot figcaption { margin-top: 12px; font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+
+    /* -- 隐私 / 花费双卡 -- */
+    .sc-split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .sc-card {
+      display: flex;
+      flex-direction: column;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 30px;
+    }
+    .sc-card h3 { font-size: 17.5px; font-weight: 800; margin-bottom: 8px; }
+    .sc-card > p { color: var(--muted); font-size: 14.5px; margin-bottom: 18px; }
+    .sc-card .tags { margin-top: auto; }
+
+    /* -- 行内代码（步骤 / FAQ 里的小字） -- */
+    .feature-card code, .faq-a code, .sc-card code, .note-body code, .step code {
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.85em;
+      background: rgba(30, 24, 12, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1px 6px;
+      color: var(--accent-ink);
+      word-break: break-all;
+    }
+    .note-body p code { display: inline; padding: 2px 7px; font-size: 12.5px; margin-top: 0; }
+
+    @media (max-width: 920px) {
+      .sc-split { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .sc-shots { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      /* 窄屏：面板居中，通知压在下沿，不再左右错位 */
+      .sc-panel { width: min(300px, 74%); margin: 0 auto; }
+      .sc-note { position: static; width: min(330px, 100%); margin: -34px auto 0; }
+    }
+    @media (max-width: 560px) {
+      .sc-guard { padding: 26px 22px; }
+      .sc-guard-head { gap: 12px; }
+    }
+  </style>
+</head>
+<body style="--accent: #5B6CFF; --btn-text: #fff;">
+
+  <header class="site-header">
+    <div class="container nav">
+      <a class="back-link" href="../../">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        <span data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</span>
+      </a>
+      <div class="nav-right">
+        <a class="nav-link hide-sm" href="https://github.com/smarty-kiki/Scheduler" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="https://github.com/smarty-kiki/Scheduler/releases" target="_blank" rel="noopener"
+           data-i18n-zh="下载" data-i18n-en="Download">下载</a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <canvas id="hero-gl" aria-hidden="true"
+              data-mode="slot" data-colors="#5b6cff,#e0524d,#9b5cf6"></canvas>
+      <div class="container hero-inner">
+
+        <div class="hero-copy">
+          <div class="hero-app">
+            <img src="../../assets/img/scheduler.png" alt="Scheduler">
+            <div>
+              <div class="hero-app-name">Scheduler</div>
+              <div class="hero-app-cat" data-i18n-zh="常驻菜单栏的 macOS 日程助手" data-i18n-en="A macOS scheduling assistant that lives in your menu bar">常驻菜单栏的 macOS 日程助手</div>
+            </div>
+          </div>
+          <h1 class="hero-title"
+              data-i18n-zh="复制一下，<br><em>一键就进日历了</em>。"
+              data-i18n-en="Copy once —<br><em>one click, it's scheduled</em>.">复制一下，<br><em>一键就进日历了</em>。</h1>
+          <p class="hero-sub"
+             data-i18n-zh="群聊里约好的时间、会议通知、航班信息、体检预约——随手复制，Scheduler 在后台认成结构化日程：标题、起止、地点、参与人、备注，一键写进系统日历。写入之前，冲突和重复都已经替你看过。"
+             data-i18n-en="A time agreed in a group chat, a meeting notice, a flight, a check-up — just copy it. Scheduler reads it into a structured event in the background: title, start and end, place, attendees, notes, written to your calendar in one click. And before anything is written, conflicts and duplicates have already been checked.">群聊里约好的时间、会议通知、航班信息、体检预约——随手复制，Scheduler 在后台认成结构化日程：标题、起止、地点、参与人、备注，一键写进系统日历。写入之前，冲突和重复都已经替你看过。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/Scheduler/releases" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
+              <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/smarty-kiki/Scheduler" target="_blank" rel="noopener"
+               data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
+          </div>
+          <div class="facts">
+            <span class="fact">macOS 14+</span>
+            <span class="fact" data-i18n-zh="MIT 开源" data-i18n-en="MIT open source">MIT 开源</span>
+            <span class="fact" data-i18n-zh="无服务端、无账号" data-i18n-en="No server, no account">无服务端、无账号</span>
+            <span class="fact" data-i18n-zh="不占 Dock、不弹窗口" data-i18n-en="No Dock icon, no windows">不占 Dock、不弹窗口</span>
+          </div>
+        </div>
+
+        <!-- 真机面板 + 一条「识别到日程」通知（纯装饰） -->
+        <div class="mock" aria-hidden="true">
+          <figure class="sc-panel">
+            <img src="../../assets/img/scheduler-popover.png" alt="">
+          </figure>
+          <div class="sc-note">
+            <div class="sc-note-head">
+              <img src="../../assets/img/scheduler.png" alt="">
+              <span class="sc-note-app">Scheduler</span>
+              <span class="sc-note-when" data-i18n-zh="现在" data-i18n-en="now">现在</span>
+            </div>
+            <p class="sc-note-title">
+              <span data-i18n-zh="识别到日程" data-i18n-en="Schedule detected">识别到日程</span><i data-i18n-zh="来自剪贴板" data-i18n-en="from clipboard">来自剪贴板</i>
+            </p>
+            <p class="sc-note-line" data-i18n-zh="与张总产品评审" data-i18n-en="Product review with Zhang">与张总产品评审</p>
+            <p class="sc-note-meta" data-i18n-zh="明天 15:00–16:30 · 深圳公司" data-i18n-en="Tomorrow 15:00–16:30 · Shenzhen office">明天 15:00–16:30 · 深圳公司</p>
+            <div class="sc-note-btns">
+              <span class="sc-note-btn primary" data-i18n-zh="加入日历" data-i18n-en="Add to calendar">加入日历</span>
+              <span class="sc-note-btn" data-i18n-zh="补充信息" data-i18n-en="Edit details">补充信息</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 痛点 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="为什么做它" data-i18n-en="WHY">为什么做它</span>
+          <h2 class="section-title"
+              data-i18n-zh="日程该进日历，而不是记在脑子里" data-i18n-en="Schedules belong in the calendar — not in your head">日程该进日历，而不是记在脑子里</h2>
+          <p class="section-sub"
+             data-i18n-zh="约好的事就在聊天记录里躺着，手工录一遍，往往比谈话本身还费时间。"
+             data-i18n-en="The plan is already sitting in your chat history. Typing it in by hand often takes longer than the conversation did.">约好的事就在聊天记录里躺着，手工录一遍，往往比谈话本身还费时间。</p>
+        </div>
+
+        <div class="pain-grid">
+          <div class="pain-card">
+            <h3 data-i18n-zh="复制了时间，就得再抄一遍" data-i18n-en="You copied the time — now type it in">复制了时间，就得再抄一遍</h3>
+            <p data-i18n-zh="打开日历、新建日程、填标题、调起止、补地点——一件五分钟能说清的事，录入又要五分钟。"
+               data-i18n-en="Open the calendar, create an event, title it, set the start and end, add a place — five minutes to agree on something, five more to write it down.">打开日历、新建日程、填标题、调起止、补地点——一件五分钟能说清的事，录入又要五分钟。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="「就那个时间，你知道的」" data-i18n-en="&ldquo;You know, the usual time&rdquo;">「就那个时间，你知道的」</h3>
+            <p data-i18n-zh="口语里的时间先是人的语言，再是日历的语言：「下周三下午三点」「周五上午聊一下」——脑子得先翻译一遍才敢填。"
+               data-i18n-en="The times people say are human first, calendar second — &ldquo;next Wednesday afternoon&rdquo;, &ldquo;let's talk Friday morning&rdquo;. You translate in your head before you dare fill the field.">口语里的时间先是人的语言，再是日历的语言：「下周三下午三点」「周五上午聊一下」——脑子得先翻译一遍才敢填。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="翻日历找空档，比约时间还累" data-i18n-en="Finding a free slot is the real work">翻日历找空档，比约时间还累</h3>
+            <p data-i18n-zh="定下来的时间撞上了已有安排，得自己翻一遍当天，看看挪到几点才不打架。"
+               data-i18n-en="The time you settled on collides with something else — now you scan the whole day by hand to see where it can move.">定下来的时间撞上了已有安排，得自己翻一遍当天，看看挪到几点才不打架。</p>
+          </div>
+        </div>
+
+        <p class="pain-transition"
+           data-i18n-zh="Scheduler 换了个活法：<em>复制一下就完事</em>——剩下的，它在后台替你做完。"
+           data-i18n-en="Scheduler does it differently: <em>just copy it</em>. The rest happens in the background, without you.">Scheduler 换了个活法：<em>复制一下就完事</em>——剩下的，它在后台替你做完。</p>
+      </div>
+    </section>
+
+    <!-- ============ 功能 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="核心能力" data-i18n-en="FEATURES">核心能力</span>
+          <h2 class="section-title"
+              data-i18n-zh="复制那一刻，识别就已经完成" data-i18n-en="The moment you copy, it's already read">复制那一刻，识别就已经完成</h2>
+          <p class="section-sub"
+             data-i18n-zh="它不只是一个「粘贴板」，更像一个替你盯着日程的同事——该补的补上，该拦的拦住。"
+             data-i18n-en="Less a clipboard and more a colleague who keeps an eye on your schedule — filling in what's missing, stopping what shouldn't happen.">它不只是一个「粘贴板」，更像一个替你盯着日程的同事——该补的补上，该拦的拦住。</p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 13l2 2 4-4"/></svg>
+            </div>
+            <h3 data-i18n-zh="口语化的时间，直接懂" data-i18n-en="Spoken times, understood">口语化的时间，直接懂</h3>
+            <p data-i18n-zh="「下周三下午三点」「周五 14:00–15:00 在大新油画村见面」「今晚一起吃饭」——不用改成规范格式，复制过来就是准确的日期与时段。"
+               data-i18n-en="&ldquo;Next Wednesday at three&rdquo;, &ldquo;Friday 14:00–15:00 at the studio&rdquo;, &ldquo;dinner tonight&rdquo; — no need to normalise anything. Copy it as written, and it comes back as exact dates and times.">「下周三下午三点」「周五 14:00–15:00 在大新油画村见面」「今晚一起吃饭」——不用改成规范格式，复制过来就是准确的日期与时段。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+            </div>
+            <h3 data-i18n-zh="要素不齐，也能录" data-i18n-en="Half the details are still enough">要素不齐，也能录</h3>
+            <p data-i18n-zh="只写「下周三」就自动推算日期；没写时长，按事件类型推断——会议 1 小时、聚餐 1.5 小时。缺的字段不用重来，在确认窗口里就地补。"
+               data-i18n-en="Only &ldquo;next Wednesday&rdquo;? It works out the date. No duration? It infers one from the type — an hour for a meeting, ninety minutes for dinner. Nothing missing means starting over: you fill it in right there in the confirmation window.">只写「下周三」就自动推算日期；没写时长，按事件类型推断——会议 1 小时、聚餐 1.5 小时。缺的字段不用重来，在确认窗口里就地补。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+            </div>
+            <h3 data-i18n-zh="截图同样可以" data-i18n-en="Screenshots work too">截图同样可以</h3>
+            <p data-i18n-zh="群聊截图、通知截图都行——文字在本机认出来，图片不出你的 Mac。一段话里说了三件事，就建三条（一次最多 5 条）。"
+               data-i18n-en="A group chat, a notification, a poster — all fair game. The text is read on your Mac; the image never leaves it. Three things in one message become three events (up to five at a time).">群聊截图、通知截图都行——文字在本机认出来，图片不出你的 Mac。一段话里说了三件事，就建三条（一次最多 5 条）。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="m12 13.5 1.2 2.4 2.3.4-1.7 1.8.4 2.4-2.2-1.2-2.2 1.2.4-2.4-1.7-1.8 2.3-.4z"/></svg>
+            </div>
+            <h3 data-i18n-zh="撞了，直接给方案" data-i18n-en="A conflict comes with a plan">撞了，直接给方案</h3>
+            <p data-i18n-zh="与已有日程重叠时，通知上不是一句「撞了」，而是算好当天可行的空档——点「改到 07:00」就完成改期并写入，不用打开任何窗口。"
+               data-i18n-en="When it overlaps something you already have, the notification doesn't just say &ldquo;conflict&rdquo; — it works out the open slots that day. Tap &ldquo;move to 07:00&rdquo; and the reschedule is written, without opening a single window.">与已有日程重叠时，通知上不是一句「撞了」，而是算好当天可行的空档——点「改到 07:00」就完成改期并写入，不用打开任何窗口。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/><path d="m13 15 1.5 1.5L18 13"/></svg>
+            </div>
+            <h3 data-i18n-zh="同一件事，不会录两遍" data-i18n-en="The same thing never lands twice">同一件事，不会录两遍</h3>
+            <p data-i18n-zh="群里刷屏、消息被转发，同一件事反复复制也不会在日历里堆成多条——「与老王见面」和「跟老王碰个头」，它认得出来是同一件事。"
+               data-i18n-en="A spammed group, a forwarded message — copying the same thing again and again won't stack up events in your calendar. &ldquo;Meet with Wang&rdquo; and &ldquo;catch up with Wang&rdquo; it knows are one and the same.">群里刷屏、消息被转发，同一件事反复复制也不会在日历里堆成多条——「与老王见面」和「跟老王碰个头」，它认得出来是同一件事。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>
+            </div>
+            <h3 data-i18n-zh="常用地，会读场景" data-i18n-en="Saved places that read the context">常用地，会读场景</h3>
+            <p data-i18n-zh="配好「公司」「家」这类常用地，工作日程没写地点会自动补上公司；朋友聚餐这类场景则不套用——按场景判断，不会跨城市乱套。地图上选个点，起个别称就行。"
+               data-i18n-en="Set up places like &ldquo;office&rdquo; and &ldquo;home&rdquo;, and a work event with no location gets the office filled in. A dinner with friends doesn't — it judges by context, and never applies a place from the wrong city. Drop a pin on the map and give it a nickname.">配好「公司」「家」这类常用地，工作日程没写地点会自动补上公司；朋友聚餐这类场景则不套用——按场景判断，不会跨城市乱套。地图上选个点，起个别称就行。</p>
+          </div>
+        </div>
+
+        <!-- 安静的菜单栏公民 -->
+        <div class="sc-guard">
+          <div class="sc-guard-head">
+            <span class="sc-guard-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/><circle cx="6.4" cy="6.5" r="0.6" fill="currentColor"/></svg>
+            </span>
+            <div>
+              <h3 data-i18n-zh="安静的菜单栏公民" data-i18n-en="A quiet menu bar citizen">安静的菜单栏公民</h3>
+              <p data-i18n-zh="不是又一个要你供养的窗口程序——装好之后，你只在需要它的那一刻看到它。"
+                 data-i18n-en="Not another window app demanding your attention — once it's set up, you see it only in the moment you need it.">不是又一个要你供养的窗口程序——装好之后，你只在需要它的那一刻看到它。</p>
+            </div>
+          </div>
+          <div class="sc-guard-grid">
+            <div>
+              <h4 data-i18n-zh="原生 Swift，不占 Dock" data-i18n-en="Native Swift, no Dock icon">原生 Swift，不占 Dock</h4>
+              <p data-i18n-zh="没有 Electron、没有运行时，平时只有菜单栏上一个小图标。"
+                 data-i18n-en="No Electron, no runtime — just a small icon in the menu bar.">没有 Electron、没有运行时，平时只有菜单栏上一个小图标。</p>
+            </div>
+            <div>
+              <h4 data-i18n-zh="权限全可选" data-i18n-en="Every permission optional">权限全可选</h4>
+              <p data-i18n-zh="日历、定位都不授权也能用，只是少了冲突检测与地址补全。"
+                 data-i18n-en="Calendar and location are both optional — you just lose conflict checks and address completion.">日历、定位都不授权也能用，只是少了冲突检测与地址补全。</p>
+            </div>
+            <div>
+              <h4 data-i18n-zh="图标自己会换脸" data-i18n-en="An icon that follows your theme">图标自己会换脸</h4>
+              <p data-i18n-zh="菜单栏图标随系统明暗自动反色，亮色暗色都不突兀。"
+                 data-i18n-en="The menu bar icon inverts with your system appearance, so it never looks out of place.">菜单栏图标随系统明暗自动反色，亮色暗色都不突兀。</p>
+            </div>
+            <div>
+              <h4 data-i18n-zh="不会挂出两个图标" data-i18n-en="Never two icons">不会挂出两个图标</h4>
+              <p data-i18n-zh="单实例保护：重复启动也只有一个 Scheduler 待命。"
+                 data-i18n-en="Single-instance protection: launch it twice and still only one Scheduler is on duty.">单实例保护：重复启动也只有一个 Scheduler 待命。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 界面一览 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="界面一览" data-i18n-en="A LOOK INSIDE">界面一览</span>
+          <h2 class="section-title"
+              data-i18n-zh="该看的地方，它都替你看过了" data-i18n-en="Everything worth checking, already checked">该看的地方，它都替你看过了</h2>
+          <p class="section-sub"
+             data-i18n-zh="下面是四张真机画面：撞了怎么办、重复怎么办、确认长什么样、常用地在哪儿配。"
+             data-i18n-en="Four real screenshots: what happens on a conflict, on a duplicate, what confirmation looks like, and where saved places live.">下面是四张真机画面：撞了怎么办、重复怎么办、确认长什么样、常用地在哪儿配。</p>
+        </div>
+
+        <div class="sc-shots">
+          <figure class="sc-shot">
+            <img src="../../assets/img/scheduler-conflict.png" alt="">
+            <figcaption data-i18n-zh="与已有日程重叠：直接给出当天可用时段，缺的字段就地补。"
+                        data-i18n-en="Overlaps an existing event: it offers that day's free slots, and missing fields are filled in place.">与已有日程重叠：直接给出当天可用时段，缺的字段就地补。</figcaption>
+          </figure>
+          <figure class="sc-shot">
+            <img src="../../assets/img/scheduler-duplicate.png" alt="">
+            <figcaption data-i18n-zh="日历里可能已有同一条：先问过你，再决定加不加。"
+                        data-i18n-en="The calendar may already hold this one: it asks before adding anything.">日历里可能已有同一条：先问过你，再决定加不加。</figcaption>
+          </figure>
+          <figure class="sc-shot">
+            <img src="../../assets/img/scheduler-confirm.png" alt="">
+            <figcaption data-i18n-zh="字段齐全时一眼确认，点「加入日历」完成。"
+                        data-i18n-en="When every field is in place, one glance and &ldquo;Add to calendar&rdquo; finishes it.">字段齐全时一眼确认，点「加入日历」完成。</figcaption>
+          </figure>
+          <figure class="sc-shot">
+            <img src="../../assets/img/scheduler-locations.png" alt="">
+            <figcaption data-i18n-zh="常用地：地图选点起个别称，识别时按场景自动套用。"
+                        data-i18n-en="Saved places: drop a pin, give it a nickname, and it's applied by context when reading.">常用地：地图选点起个别称，识别时按场景自动套用。</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 隐私与花费 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="隐私与花费" data-i18n-en="PRIVACY &amp; COST">隐私与花费</span>
+          <h2 class="section-title"
+              data-i18n-zh="没有服务端，就没有要信任的中间方" data-i18n-en="No server means no middleman to trust">没有服务端，就没有要信任的中间方</h2>
+          <p class="section-sub"
+             data-i18n-zh="日程这类信息，最稳妥的保管方式是：它根本不离开你的电脑。"
+             data-i18n-en="For something like your calendar, the safest place to keep it is the one it never leaves: your own Mac.">日程这类信息，最稳妥的保管方式是：它根本不离开你的电脑。</p>
+        </div>
+
+        <div class="sc-split">
+          <div class="sc-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12h6"/><path d="M12 9v6"/></svg>
+            </div>
+            <h3 data-i18n-zh="日程与配置，全部留在本机" data-i18n-en="Your calendar and settings stay on your Mac">日程与配置，全部留在本机</h3>
+            <p data-i18n-zh="没有服务端，也没有需要信任的中间方：日程通过系统日历直接读写，走的是系统权限；截图由本机取字，图片不出你的 Mac。识别请求直连你自己配置的 DeepSeek，不经过任何中间服务器。"
+               data-i18n-en="No server, and no middleman to trust: events are read and written through the system calendar under system permissions; screenshots are read on-device and the image never leaves your Mac. Recognition calls go straight to your own DeepSeek — never through anyone else's server.">没有服务端，也没有需要信任的中间方：日程通过系统日历直接读写，走的是系统权限；截图由本机取字，图片不出你的 Mac。识别请求直连你自己配置的 DeepSeek，不经过任何中间服务器。</p>
+            <div class="tags">
+              <span class="tag" data-i18n-zh="无服务端" data-i18n-en="No server">无服务端</span>
+              <span class="tag" data-i18n-zh="无账号" data-i18n-en="No account">无账号</span>
+              <span class="tag" data-i18n-zh="截图不出本机" data-i18n-en="Screenshots stay local">截图不出本机</span>
+            </div>
+          </div>
+
+          <div class="sc-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/><path d="M14.5 9.5A2.5 2.5 0 0 0 12 8c-1.4 0-2.5.8-2.5 2s1.1 2 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2a2.5 2.5 0 0 1-2.5-1.5"/></svg>
+            </div>
+            <h3 data-i18n-zh="花钱吗？只花你自己的用量" data-i18n-en="Costs? Only your own usage">花钱吗？只花你自己的用量</h3>
+            <p data-i18n-zh="应用本体不收费（MIT）。唯一的开销是识别：请求走你自己的 DeepSeek 账号，用多少花多少，默认用单价最低的 flash 模型。本地还会先筛一道——明显的闲聊不触发模型调用，也就不产生费用。"
+               data-i18n-en="The app itself is free of charge (MIT). The only cost is recognition: calls run on your own DeepSeek account, pay for what you use, on the cheapest flash model by default. And a local pre-filter comes first — plain chit-chat never triggers a model call, so it never costs anything.">应用本体不收费（MIT）。唯一的开销是识别：请求走你自己的 DeepSeek 账号，用多少花多少，默认用单价最低的 flash 模型。本地还会先筛一道——明显的闲聊不触发模型调用，也就不产生费用。</p>
+            <div class="tags">
+              <span class="tag" data-i18n-zh="应用本体不收费" data-i18n-en="The app itself costs nothing">应用本体不收费</span>
+              <span class="tag" data-i18n-zh="只用自己的 Key" data-i18n-en="Your own key only">只用自己的 Key</span>
+              <span class="tag" data-i18n-zh="默认 flash 模型" data-i18n-en="Flash model by default">默认 flash 模型</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 三步上手 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="快速上手" data-i18n-en="GET STARTED">快速上手</span>
+          <h2 class="section-title"
+              data-i18n-zh="三步，请它上岗" data-i18n-en="Three steps to put it on duty">三步，请它上岗</h2>
+          <p class="section-sub"
+             data-i18n-zh="不用注册、不用登录——装上、填上 Key、复制一段话，就开始了。"
+             data-i18n-en="No sign-up, no login — install it, add your key, copy something, and you're going.">不用注册、不用登录——装上、填上 Key、复制一段话，就开始了。</p>
+        </div>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <h3 data-i18n-zh="下载安装" data-i18n-en="Install">下载安装</h3>
+            <p data-i18n-zh="在 Releases 下载 <code>Scheduler-v*.dmg</code>，打开后把 Scheduler 拖进窗口里的「应用程序」。应用未经 Apple 公证，首次打开请右键点图标选「打开」。"
+               data-i18n-en="Grab <code>Scheduler-v*.dmg</code> from Releases and drag Scheduler into the Applications folder in the window. The app isn't notarized, so on first launch right-click the icon and choose Open.">在 Releases 下载 <code>Scheduler-v*.dmg</code>，打开后把 Scheduler 拖进窗口里的「应用程序」。应用未经 Apple 公证，首次打开请右键点图标选「打开」。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <h3 data-i18n-zh="填上你的 Key" data-i18n-en="Add your key">填上你的 Key</h3>
+            <p data-i18n-zh="点菜单栏图标 → 设置 → DeepSeek，填入在 platform.deepseek.com 生成的 Key，点「测试连接」。输入框旁的「粘贴」按钮会替你清掉首尾空格。日历与定位授权建议给上，不给也能用。"
+               data-i18n-en="Click the menu bar icon → Settings → DeepSeek, paste the key you created at platform.deepseek.com, and hit Test connection. The Paste button beside the field clears stray spaces for you. Calendar and location permissions are recommended, but not required.">点菜单栏图标 → 设置 → DeepSeek，填入在 platform.deepseek.com 生成的 Key，点「测试连接」。输入框旁的「粘贴」按钮会替你清掉首尾空格。日历与定位授权建议给上，不给也能用。</p>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <h3 data-i18n-zh="复制一段含时间的文本" data-i18n-en="Copy something with a time in it">复制一段含时间的文本</h3>
+            <p data-i18n-zh="通知随即弹出，点「加入日历」完成。写入成功还是失败，通知里都会说明结果——不会静默失败。之后每一次复制，它都在后台替你看一眼。"
+               data-i18n-en="The notification appears, and Add to calendar finishes it. Success or failure, the notification tells you what happened — it never fails silently. From then on, every copy gets a quiet look in the background.">通知随即弹出，点「加入日历」完成。写入成功还是失败，通知里都会说明结果——不会静默失败。之后每一次复制，它都在后台替你看一眼。</p>
+          </div>
+        </div>
+
+        <details class="note">
+          <summary data-i18n-zh="打开时提示「无法验证开发者」或「已损坏」？" data-i18n-en="macOS says &ldquo;cannot verify the developer&rdquo; — or worse, &ldquo;damaged&rdquo;?">打开时提示「无法验证开发者」或「已损坏」？</summary>
+          <div class="note-body">
+            <p data-i18n-zh="这个应用没有 Apple 开发者证书、没有做公证，所以首次打开会被 Gatekeeper 拦一下。放行一次即可："
+               data-i18n-en="The app isn't notarized (no Apple Developer certificate), so Gatekeeper stops the first launch. You only need to allow it once:">这个应用没有 Apple 开发者证书、没有做公证，所以首次打开会被 Gatekeeper 拦一下。放行一次即可：</p>
+            <ol>
+              <li data-i18n-zh="先双击打开一次，macOS 会提示无法验证开发者；"
+                  data-i18n-en="Try opening the app once — macOS will say it cannot verify the developer.">先双击打开一次，macOS 会提示无法验证开发者；</li>
+              <li data-i18n-zh="打开「系统设置 → 隐私与安全性」，在底部找到被拦的提示，点「仍要打开」。"
+                  data-i18n-en="Open System Settings → Privacy &amp; Security, find the blocked message, and click Open Anyway.">打开「系统设置 → 隐私与安全性」，在底部找到被拦的提示，点「仍要打开」。</li>
+            </ol>
+            <p data-i18n-zh="或者，在终端执行一次这条命令，之后就能正常打开："
+               data-i18n-en="Or run this once in Terminal, then open normally:">或者，在终端执行一次这条命令，之后就能正常打开：</p>
+            <code>xattr -dr com.apple.quarantine /Applications/Scheduler.app</code>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="常见问题" data-i18n-en="FAQ">常见问题</span>
+          <h2 class="section-title"
+              data-i18n-zh="你可能想问" data-i18n-en="You might be wondering">你可能想问</h2>
+        </div>
+
+        <div class="faq">
+          <details>
+            <summary data-i18n-zh="要花钱吗？" data-i18n-en="Does it cost anything?">要花钱吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="应用本体不收费，MIT 协议开源。唯一的开销是识别——请求走你自己的 DeepSeek 账号，默认用单价最低的 flash 模型；本地预筛还会先挡掉明显的闲聊，不产生识别费用。"
+               data-i18n-en="The app itself costs nothing and is MIT-licensed. The only spend is recognition, running on your own DeepSeek account on the cheapest flash model by default — and a local pre-filter keeps plain chit-chat from ever reaching the model.">应用本体不收费，MIT 协议开源。唯一的开销是识别——请求走你自己的 DeepSeek 账号，默认用单价最低的 flash 模型；本地预筛还会先挡掉明显的闲聊，不产生识别费用。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="要注册账号吗？" data-i18n-en="Do I need an account?">要注册账号吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不用。没有服务端、没有账号、没有登录；日程写进你的系统日历，识别直连你自己配置的 DeepSeek。"
+               data-i18n-en="No. No server, no account, no sign-in — events go into your system calendar, and recognition talks straight to the DeepSeek you configured.">不用。没有服务端、没有账号、没有登录；日程写进你的系统日历，识别直连你自己配置的 DeepSeek。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="我的日程数据会经过你们的服务器吗？" data-i18n-en="Does my calendar data pass through your servers?">我的日程数据会经过你们的服务器吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="没有「你们的服务器」这回事。日程与配置全部在本机：日历通过系统接口读写，识别请求只发往你自己填的 DeepSeek，不经过任何中间服务器。"
+               data-i18n-en="There is no &ldquo;our server&rdquo;. Events and settings all live on your Mac: the calendar is read and written through the system API, and recognition calls go only to the DeepSeek account you entered — through no middleman.">没有「你们的服务器」这回事。日程与配置全部在本机：日历通过系统接口读写，识别请求只发往你自己填的 DeepSeek，不经过任何中间服务器。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="截图识别会把图片上传吗？" data-i18n-en="Does screenshot recognition upload my images?">截图识别会把图片上传吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不会。截图由本机取字，图片不出你的 Mac——离开本机的只有认出来的文字。"
+               data-i18n-en="No. The text is extracted on-device and the image never leaves your Mac — only the recognised text travels.">不会。截图由本机取字，图片不出你的 Mac——离开本机的只有认出来的文字。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="日历权限不给能用吗？" data-i18n-en="Can I use it without calendar access?">日历权限不给能用吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="能，只是少了冲突检测；定位不给，则少了地址补全。日历权限分「完整访问 / 仅写入 / 已拒绝」——只有「仅写入」或「已拒绝」时冲突检测会失效，面板与设置页都会标明当前状态和原因。"
+               data-i18n-en="Yes — you just lose conflict checks (and address completion without location). Calendar access has three states — full access, write-only, denied — and conflict checks only stop working in write-only or denied; the panel and settings both tell you which state you're in, and why.">能，只是少了冲突检测；定位不给，则少了地址补全。日历权限分「完整访问 / 仅写入 / 已拒绝」——只有「仅写入」或「已拒绝」时冲突检测会失效，面板与设置页都会标明当前状态和原因。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="订阅日历里的「XX 截止」会算占用吗？" data-i18n-en="Do &ldquo;XX due&rdquo; entries from subscribed calendars block a slot?">订阅日历里的「XX 截止」会算占用吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不会。这类不到 5 分钟的点事件不算占用时段，不会凭空造出假冲突。"
+               data-i18n-en="No. Those point events under five minutes long don't count as occupying time, so no phantom conflicts appear.">不会。这类不到 5 分钟的点事件不算占用时段，不会凭空造出假冲突。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="同一件事复制两次，会建两条吗？" data-i18n-en="Copy the same thing twice — two events?">同一件事复制两次，会建两条吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不会。去重是语义判断：「与老王见面」和「跟老王碰个头」认得出来是同一件事；判断不确定时，它会先问你，再决定加不加。"
+               data-i18n-en="No. Deduplication is semantic: &ldquo;meet with Wang&rdquo; and &ldquo;catch up with Wang&rdquo; are read as the same thing — and when it isn't sure, it asks you before adding.">不会。去重是语义判断：「与老王见面」和「跟老王碰个头」认得出来是同一件事；判断不确定时，它会先问你，再决定加不加。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="支持哪些 Mac？" data-i18n-en="Which Macs are supported?">支持哪些 Mac？</summary>
+            <p class="faq-a"
+               data-i18n-zh="macOS 14 及以上。"
+               data-i18n-en="macOS 14 or later.">macOS 14 及以上。</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="cta-band">
+          <h2 data-i18n-zh="下一次复制，顺手把日程也建了" data-i18n-en="Next time you copy, the event comes with it">下一次复制，顺手把日程也建了</h2>
+          <p data-i18n-zh="下载即用，一分钟装好。之后每一次复制，都少一道手工录入。"
+             data-i18n-en="Download and go — a minute to set up. After that, every copy saves you a manual entry.">下载即用，一分钟装好。之后每一次复制，都少一道手工录入。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/Scheduler/releases" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
+              <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/smarty-kiki/Scheduler" target="_blank" rel="noopener"
+               data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n-zh="© 2026 Scheduler · 基于 MIT 协议开源" data-i18n-en="© 2026 Scheduler · Open source under the MIT license">© 2026 Scheduler · 基于 MIT 协议开源</span>
+      <span>
+        <a href="../../" data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/smarty-kiki/Scheduler" target="_blank" rel="noopener">GitHub</a>
+      </span>
+    </div>
+  </footer>
+
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/hero-gl.js"></script>
+</body>
+</html>

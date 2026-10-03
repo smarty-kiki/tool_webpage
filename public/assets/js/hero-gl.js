@@ -9,7 +9,7 @@
 
    配置（canvas 的 data 属性）：
      data-engine="gl"（默认）| "three"
-     data-mode="flow"（默认）| "queue" | "scan" | "net" | "wire" | "sop" | "cue" | "local" —— gl 引擎
+     data-mode="flow"（默认）| "queue" | "scan" | "net" | "wire" | "sop" | "cue" | "local" | "slot" —— gl 引擎
      data-scene="cards" | "nebula"                     —— three 引擎
      data-colors="#a,#b,#c"   三色品牌色，缺省从 --accent 推导
      data-speed="1"           速度倍率
@@ -55,7 +55,7 @@
   var colB = parseHex(colors[1]) || [0.369, 0.647, 0.980];   /* 蓝 */
   var colC = parseHex(colors[2]) || [0.541, 0.592, 1.000];   /* 紫 */
 
-  var MODES = { flow: 0, queue: 1, scan: 2, net: 3, wire: 4, sop: 5, cue: 6, local: 7 };
+  var MODES = { flow: 0, queue: 1, scan: 2, net: 3, wire: 4, sop: 5, cue: 6, local: 7, slot: 8 };
   var mode = MODES[canvas.getAttribute('data-mode')] || 0;
   var speed = parseFloat(canvas.getAttribute('data-speed')) || 1;
   var dot = parseFloat(canvas.getAttribute('data-dot'));
@@ -205,6 +205,23 @@
     '  g = mod(g, 64.0);',
     '  vec2 auv = (vec2(mod(g, 8.0), floor(g / 8.0)) + clamp(vec2(f.x, 1.0 - f.y), 0.03, 0.97)) / 8.0;',
     '  return textureLod(u_glyphs, auv, 1.0).r;',   /* 固定 mip 层：格子在屏幕上约 32px，正好对上 LOD1 */
+    '}',
+    '',
+    '/* slot 模式：以 (xc,yc) 为中心、半宽 hw / 半高 hh 的超椭圆日程块 */',
+    '/* 返回 vec2(块体遮罩, 描边遮罩) */',
+    'vec2 slotBox(vec2 wp, float xc, float yc, float hw, float hh) {',
+    '  float d = localDist(wp - vec2(xc, yc), vec2(hw, hh), 4.0);',
+    '  float body = 1.0 - smoothstep(-0.007, 0.004, d);',
+    '  float edge = smoothstep(0.0028, 0.0, abs(d));',
+    '  return vec2(body, edge);',
+    '}',
+    '',
+    '/* slot 模式：第 k 套剧本 —— .x = 撞上去时的中心 y，.y = 挪进空档后的中心 y',
+    '   （两者相同 = 这段时间本来就空着，直接落位） */',
+    'vec2 slotPlan(float k) {',
+    '  if (k < 0.5) return vec2(0.635, 0.770);',    /* 撞上中午那场长的 → 挪到它上面 */
+    '  if (k < 1.5) return vec2(0.895, 0.770);',    /* 撞上早晨那场 → 挪到它下面 */
+    '  return vec2(0.770, 0.770);',                 /* 本来空着：直接落位 */
     '}',
     '',
     'void main() {',
@@ -516,6 +533,102 @@
     '    col = mix(col, mix(vec3(1.0), cDive, 0.85), lDive * 0.80);',
     '    col = mix(col, mix(vec3(1.0), u_colA, 0.40), lCore * 0.80);',   /* 核心：淡青芯片 */
     '    col = mix(col, vec3(1.0), clamp(flash, 0.0, 1.0) * focus * 0.45);',
+    '    col = mix(col, vec3(1.0), halo * 0.30);',
+    '  } else if (u_mode == 8) {',
+    '    /* ---- slot：复制进来的日程先撞上已有安排（红一下），',
+    '            再滑进最近的空档落定；空档本来空着就直接落位 ---- */',
+    '    float ut = u_time;',
+    '    vec2 wp = p + sway * 0.4;',
+    '    float T = 11.0;',
+    '    float ph = fract(ut / T);',
+    '    float cyc = floor(ut / T);',
+    '    float pick = floor(hash(vec2(cyc, 4.4)) * 3.0);',
+    '    vec2 plan = slotPlan(pick);',
+    '    float yHit = plan.x;',                       /* 撞上去时的中心 */
+    '    float yFit = plan.y;',                       /* 挪进空档后的中心 */
+    '    float railX = aspect * 0.505;',              /* 时间轴竖轨：落在文案与截图之间的空档 */
+    '    float xk = clamp(aspect / 1.9, 0.30, 1.0);',  /* 窄画布（手机）上把日历列收紧，别出血 */
+    '    float bx = railX + 0.150 * xk;',             /* 日程块中心 x */
+    '    float bw = 0.105 * xk;',                     /* 半宽 */
+    '    float bh = 0.040;',                          /* 半高：比撞上的那场略矮，露出来才看得出撞了谁 */
+    '    float e1c = 0.895, e1h = 0.055;',            /* 已有安排：早晨一场 */
+    '    float e2c = 0.635, e2h = 0.065;',            /* 中午一场（长） */
+    '    float e3c = 0.505, e3h = 0.035;',            /* 傍晚一条（短） */
+    '    /* 时间轴：竖轨 + 12 道刻度（常驻） */',
+    '    float rail = smoothstep(0.0022, 0.0, abs(wp.x - railX))',
+    '               * smoothstep(0.44, 0.48, wp.y) * smoothstep(0.97, 0.93, wp.y);',
+    '    float ticks = 0.0;',
+    '    for (int i = 0; i < 12; i++) {',
+    '      float ty = 0.470 + float(i) * 0.0427;',
+    '      ticks += (1.0 - step(0.030 * xk, wp.x - railX)) * step(0.0, wp.x - railX)',
+    '             * smoothstep(0.0022, 0.0, abs(wp.y - ty));',
+    '    }',
+    '    ticks = clamp(ticks, 0.0, 1.0);',
+    '    /* 日历上已有的三场 */',
+    '    vec2 b1 = slotBox(wp, bx, e1c, bw, e1h);',
+    '    vec2 b2 = slotBox(wp, bx, e2c, bw, e2h);',
+    '    vec2 b3 = slotBox(wp, bx, e3c, bw, e3h);',
+    '    float evBody = clamp(b1.x + b2.x + b3.x, 0.0, 1.0);',
+    '    float evEdge = clamp(b1.y + b2.y + b3.y, 0.0, 1.0);',
+    '    /* 这次撞上的是哪一场：与 slotPlan 一一对应（直接落位那套没有对手，拉到画面外） */',
+    '    float eC = pick < 0.5 ? e2c : (pick < 1.5 ? e1c : 1.5);',
+    '    float eH = pick < 0.5 ? e2h : (pick < 1.5 ? e1h : 0.02);',
+    '    float hasC = step(0.001, abs(yFit - yHit));',    /* 0 = 本来就空，不红不紫 */
+    '    /* 四拍：飞入 → 撞上（红） → 滑进空档（紫转蓝） → 落定涟漪 */',
+    '    float flyE = smoothstep(0.02, 0.20, ph);',
+    '    flyE = flyE * flyE * (3.0 - 2.0 * flyE);',
+    '    float mvE = smoothstep(0.46, 0.66, ph);',
+    '    mvE = mvE * mvE * (3.0 - 2.0 * mvE);',
+    '    float settled = smoothstep(0.66, 0.82, ph);',
+    '    float vis = smoothstep(0.0, 0.06, ph) * (1.0 - smoothstep(0.87, 0.99, ph));',
+    '    float conf = smoothstep(0.20, 0.25, ph) * (1.0 - smoothstep(0.44, 0.52, ph));',
+    '    float pulse = 0.55 + 0.45 * sin(ut * 6.3);',    /* 撞上时的心跳 */
+    '    float xc = bx + (1.0 - flyE) * 0.46 * xk;',      /* 从右侧（截图背后）滑入 */
+    '    float yc = mix(yHit, yFit, mvE);',
+    '    vec2 nb = slotBox(wp, xc, yc, bw, bh);',
+    '    /* 重叠区：撞上的那一小段，泛红闪 */',
+    '    float lo = max(yHit - bh, eC - eH);',
+    '    float hi = min(yHit + bh, eC + eH);',
+    '    vec2 ov = slotBox(wp, bx, (lo + hi) * 0.5, bw * 0.92, max(hi - lo, 0.0) * 0.5);',
+    '    float ovA = ov.x * step(0.001, hi - lo);',
+    '    /* 滑走后留下的一段轨迹 */',
+    '    vec2 sd = segDistQ(wp, vec2(bx, yHit), vec2(bx, yc));',
+    '    float trail = smoothstep(0.006, 0.0, sd.x) * smoothstep(0.15, 0.75, sd.y) * mvE * (1.0 - settled) * hasC;',
+    '    /* 落定：一圈涟漪从块心扩开 */',
+    '    float rp = clamp((ph - 0.66) / 0.18, 0.0, 1.0);',
+    '    float dq = length(wp - vec2(bx, yFit));',
+    '    float ripple = smoothstep(0.007, 0.0, abs(dq - rp * 0.18)) * (1.0 - rp) * step(0.66, ph);',
+    '    vec3 confCol = mix(vec3(1.0), u_colB, 0.72);',   /* 撞上：红 */
+    '    vec3 midCol  = mix(vec3(1.0), u_colC, 0.70);',   /* 挪动中：紫 */
+    '    vec3 fitCol  = mix(vec3(1.0), u_colA, 0.85);',   /* 落定：品牌蓝 */
+    '    vec3 ghostCol = mix(vec3(1.0), u_colA, 0.30);',  /* 飞入途中：淡蓝空壳，还没落位 */
+    '    float hitT = smoothstep(0.19, 0.25, ph);',       /* 撞上那一刻起才开始变色 */
+    '    vec3 landed = hasC < 0.5 ? fitCol',
+    '                : (mvE < 0.5 ? mix(confCol, midCol, mvE * 2.0)',
+    '                             : mix(midCol, fitCol, (mvE - 0.5) * 2.0));',
+    '    vec3 nCol = mix(ghostCol, landed, hitT);',       /* 块体：撞上才染红，落定成品牌蓝 */
+    '    vec3 nEdgeCol = mix(fitCol, nCol, hitT);',       /* 描边：飞入时先用品牌蓝立住 */
+    '    float flash = settled * (1.0 - settled) * 4.0;', /* 落定那一下的白光 */
+    '    float focus = 0.55 + 0.85 * halo;',
+    '    float lRail = clamp(rail * 0.85 + ticks * 0.70, 0.0, 1.0);',
+    '    float lEv = clamp(evBody * 0.55 + evEdge * 0.85, 0.0, 1.0);',
+    '    float lOv = clamp(ovA * (0.35 + 0.65 * pulse) * conf, 0.0, 1.0);',
+    '    float lNewBody = clamp(nb.x * vis, 0.0, 1.0);',
+    '    float lNewEdge = clamp(nb.y * vis * 1.25, 0.0, 1.0);',
+    '    float lTrail = clamp(trail, 0.0, 1.0);',
+    '    float lRip = clamp(ripple * 0.90, 0.0, 1.0);',
+    '    density = clamp((lRail * 0.35 + lEv * 0.50 + lOv * 0.55',
+    '                     + lNewBody * 0.80 + lNewEdge * 0.45',
+    '                     + lTrail * 0.30 + lRip * 0.60) * focus, 0.0, 1.0);',
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.35), lRail * 0.35);',
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.22), evBody * 0.42);',
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.45), evEdge * 0.62);',
+    '    col = mix(col, mix(vec3(1.0), u_colB, 0.55), lOv * 0.55);',
+    '    col = mix(col, nCol, lNewBody * 0.85);',
+    '    col = mix(col, nEdgeCol, lNewEdge * 0.62);',
+    '    col = mix(col, mix(vec3(1.0), u_colC, 0.55), lTrail * 0.40);',
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.35), lRip * 0.45);',
+    '    col = mix(col, vec3(1.0), flash * 0.35);',
     '    col = mix(col, vec3(1.0), halo * 0.30);',
     '  } else {',
     '    /* ---- cue：指哪打哪——光标弧线飞向目标、收缩锁定圈、点中泛起红色涟漪 ---- */',
