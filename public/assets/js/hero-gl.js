@@ -650,10 +650,10 @@
     '      float yc1 = L == 0 ? 0.578 : 0.512;',          /* 越往右越汇拢 */
     '      float yc = mix(yc0, yc1, clamp(wp.x / max(pillX, 1e-3), 0.0, 1.0));',
     '      float dy = wp.y - yc;',
-    '      float along = smoothstep(-0.03, 0.05, wp.x) * (1.0 - smoothstep(pillX - 0.15, pillX - 0.04, wp.x));',
+    '      float along = smoothstep(-0.03, 0.05, wp.x) * (1.0 - smoothstep(pillX - 0.08, pillX - 0.012, wp.x));',   /* 一直流到待办列底下：声波流进去凝成待办 */
     '      float sp = wp.x * 0.55 - ut * 0.20 + fl * 3.7;',   /* 说话的节奏 */
-    '      float env = smoothstep(0.34, 0.72, vnoise(vec2(sp, fl * 7.3 + 1.1)));',
-    '      float amp = (0.005 + 0.026 * env) * along;',
+    '      float env = smoothstep(0.28, 0.60, vnoise(vec2(sp, fl * 7.3 + 1.1)));',   /* 门槛压低：两路一直是“在说”的，不会有一条突然哑掉 */
+    '      float amp = (0.009 + 0.031 * env) * along;',
     '      float cell = 0.024;',                          /* 波形柱：一根根竖条 */
     '      float cx = floor(wp.x / cell) * cell + cell * 0.5;',
     '      float barX = smoothstep(0.0085, 0.0030, abs(wp.x - cx));',
@@ -666,7 +666,7 @@
     '      laneCol += lc * w;',
     '    }',
     '    /* 待办：一条条落定 */',
-    '    float pillT = 15.0;',
+    '    float pillT = 12.0;',
     '    float pp = fract(ut / pillT);',
     '    float pBody = 0.0;',
     '    float pEdge = 0.0;',
@@ -676,9 +676,11 @@
     '    float pStrike = 0.0;',
     '    float pGone = 0.0;',
     '    float pRipple = 0.0;',
+    '    float pShadow = 0.0;',
+    '    float pGlow = 0.0;',
     '    for (int k = 0; k < 3; k++) {',
     '      float fk = float(k);',
-    '      float yk = 0.655 - fk * 0.112;',
+    '      float yk = 0.735 - fk * 0.108;',    /* 整列往上挪：第三条不能被右下的通知卡挡住 */
     '      float tOn = 0.05 + fk * 0.16;',               /* 依次落定 */
     '      float land = smoothstep(tOn, tOn + 0.12, pp);',
     '      land = land * land * (3.0 - 2.0 * land);',
@@ -688,7 +690,7 @@
     '      vec2 bx = slotBox(wp, xc, yk, phw, phh);',
     '      pBody += bx.x * vis;',
     '      pEdge += bx.y * vis;',
-    '      float bd = localDist(wp - vec2(xc - phw + 0.031 * xk, yk), vec2(0.0135 * xk, 0.0135 * xk), 4.0);',
+    '      float bd = localDist(wp - vec2(xc - phw + 0.031 * xk, yk + 0.0125), vec2(0.0135 * xk, 0.0135 * xk), 4.0);',
     '      pBadge += (1.0 - smoothstep(-0.0030, 0.0020, bd)) * vis;',   /* 左边的编号章 */
     '      float tx = (wp.x - xc) / phw;',
     '      pText += smoothstep(0.0026, 0.0, abs(wp.y - yk - 0.0125))',  /* 块里那行字 */
@@ -698,38 +700,51 @@
     '               * smoothstep(0.56, 0.61, pp) * (1.0 - smoothstep(0.68, 0.75, pp));',
     '      pFlash += bx.x * up;',
     '      pFlash += slotBox(wp, xc + phw * 0.14, yk + 0.0125, phw * 0.56, 0.0125).x * up * 1.3;',
+    '      pGlow += smoothstep(0.055, 0.004, localDist(wp - vec2(xc, yk), vec2(phw, phh), 4.0)) * up;',   /* 补全时卡片往外透的橙光 */
     '      /* 作废：第 3 条划一道红，整条跟着泛红 */',
     '      float st = (fk > 1.5 ? 1.0 : 0.0) * smoothstep(0.66, 0.73, pp);',
     '      pStrike += smoothstep(0.0032, 0.0, abs(wp.y - yk))',
     '               * smoothstep(phw * 1.04, phw * 0.86, abs(wp.x - xc)) * st;',
     '      pGone += bx.x * st;',
+    '      /* 卡片底边往下的落影带：让待办有“落定”的重量 */',
+    '      float dyb = (yk - phh) - wp.y;',
+    '      pShadow += smoothstep(0.0016, 0.005, dyb) * (1.0 - smoothstep(0.0075, 0.015, dyb))',
+    '               * smoothstep(phw * 0.96, phw * 0.70, abs(wp.x - xc)) * vis;',
     '      /* 落定的那一圈涟漪 */',
     '      float rp = clamp((pp - tOn - 0.12) / 0.13, 0.0, 1.0);',
     '      float dq = length(wp - vec2(pillX, yk));',
     '      pRipple += smoothstep(0.006, 0.0, abs(dq - rp * 0.15)) * (1.0 - rp) * step(tOn + 0.12, pp);',
     '    }',
     '    float focus = 0.55 + 0.85 * halo;',
-    '    float lLane = clamp(lanes * focus, 0.0, 1.0);',
+    '    float mSoft = mix(0.36, 1.0, smoothstep(0.90, 1.40, aspect));',  /* 窄画布（手机）上把待办压淡，别糊住文案 */
+    '    float lLane = clamp(lanes * focus, 0.0, 1.0) * mix(0.55, 1.0, mSoft);',
     '    vec3 cLane = laneCol / max(length(laneCol), 1e-4);',
-    '    float lBody = clamp(pBody * focus, 0.0, 1.0);',
-    '    float lEdge = clamp(pEdge * focus, 0.0, 1.0);',
-    '    float lBadge = clamp(pBadge * focus, 0.0, 1.0);',
-    '    float lText = clamp(pText * focus, 0.0, 1.0);',
-    '    float lFlash = clamp(pFlash * focus, 0.0, 1.0);',
-    '    float lStrike = clamp(pStrike * focus, 0.0, 1.0);',
-    '    float lGone = clamp(pGone * focus, 0.0, 1.0);',
-    '    float lRip = clamp(pRipple * focus, 0.0, 1.0);',
-    '    density = clamp(lLane * 0.40 + lBody * 0.45 + lEdge * 0.50 + lBadge * 0.55 + lText * 0.35',
-    '                    + lFlash * 0.85 + lStrike * 0.70 + lGone * 0.60 + lRip * 0.55, 0.0, 1.0);',
-    '    col = mix(col, mix(vec3(1.0), cLane, 0.85), lLane * 0.46);',   /* 两路声音 */
-    '    col = mix(col, mix(vec3(1.0), u_colA, 0.16), lBody * 0.50);',  /* 待办块：极淡的暖底 */
-    '    col = mix(col, mix(vec3(1.0), u_colA, 0.45), lEdge * 0.58);',  /* 块的描边 */
-    '    col = mix(col, mix(vec3(1.0), u_colA, 0.55), lBadge * 0.72);', /* 编号章 */
-    '    col = mix(col, mix(vec3(1.0), u_colA, 0.30), lText * 0.42);',  /* 一行字 */
-    '    col = mix(col, mix(vec3(1.0), u_colA, 0.92), lFlash * 0.72);', /* 补全：橙 */
-    '    col = mix(col, mix(vec3(1.0), u_colB, 0.85), lGone * 0.50);',  /* 整条作废：泛红 */
-    '    col = mix(col, mix(vec3(1.0), u_colB, 0.92), lStrike * 0.85);',/* 删除线：红 */
-    '    col = mix(col, mix(vec3(1.0), u_colA, 0.35), lRip * 0.50);',   /* 落定涟漪 */
+    '    float lBody = clamp(pBody * focus, 0.0, 1.0) * mSoft;',
+    '    float lEdge = clamp(pEdge * focus, 0.0, 1.0) * mSoft;',
+    '    float lBadge = clamp(pBadge * focus, 0.0, 1.0) * mSoft;',
+    '    float lText = clamp(pText * focus, 0.0, 1.0) * mSoft;',
+    '    float lFlash = clamp(pFlash * focus, 0.0, 1.0) * mSoft;',
+    '    float lStrike = clamp(pStrike * focus, 0.0, 1.0) * mSoft;',
+    '    float lGone = clamp(pGone * focus, 0.0, 1.0) * mSoft;',
+    '    float lRip = clamp(pRipple * focus, 0.0, 1.0) * mSoft;',
+    '    float lShadow = clamp(pShadow * focus, 0.0, 1.0) * mSoft;',
+    '    float lGlow = clamp(pGlow * focus, 0.0, 1.0) * mSoft;',
+    '    density = clamp(lLane * 0.45 + lBody * 0.60 + lEdge * 0.45 + lBadge * 0.55 + lText * 0.35',
+    '                    + lFlash * 0.85 + lStrike * 0.70 + lGone * 0.60 + lRip * 0.55 + lShadow * 0.30',
+    '                    + lGlow * 0.45, 0.0, 1.0);',
+    '    col = mix(col, mix(vec3(1.0), cLane, 0.90), lLane * 0.70);',        /* 两路声音 */
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.50), lGlow * 0.34);',       /* 补全时往外透的橙光 */
+    '    col = mix(col, vec3(0.44, 0.34, 0.22), lShadow * 0.20);',           /* 落影带 */
+    '    float lRaw = clamp(lBody / max(mSoft, 1e-3), 0.0, 1.0);',           /* 还原色浓度：手机压淡的是不透明度，不是颜色 */
+    '    vec3 bcol = mix(mix(vec3(1.0), u_colA, 0.16), mix(vec3(1.0), u_colA, 0.78), lRaw);',
+    '    col = mix(col, bcol, min(lBody * 0.86, 0.92));',                   /* 待办块：滑进来还淡，落定成实橙 */
+    '    col = mix(col, u_colA, lEdge * 0.85);',                             /* 块的描边：实橙 */
+    '    col = mix(col, vec3(1.0), lBadge * 0.90);',                         /* 编号章：白底 */
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.06), lText * 0.80);',       /* 块里那行字：白 */
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.38), lFlash * 0.85);',      /* 补全：整条亮一下 */
+    '    col = mix(col, mix(vec3(1.0), u_colB, 0.80), lGone * 0.75);',       /* 整条作废：泛红 */
+    '    col = mix(col, mix(vec3(1.0), u_colB, 0.95), lStrike * 0.92);',     /* 删除线：红 */
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.75), lRip * 0.72);',        /* 落定涟漪 */
     '    col = mix(col, vec3(1.0), halo * 0.30);',
     '  } else {',
     '    /* ---- cue：指哪打哪——光标弧线飞向目标、收缩锁定圈、点中泛起红色涟漪 ---- */',
@@ -900,6 +915,8 @@
   hero.addEventListener('pointerleave', function () { hasPointer = false; });
 
   var t = 20 + Math.random() * 40; /* 随机相位：每次打开构图不同 */
+  /* listen 的静态帧手挑相位（prefers-reduced-motion）：三条待办都落定、中间那条正亮着，定格也讲得完故事 */
+  if (reduceMotion && mode === 9) t = 43.7;
   var reveal = reduceMotion ? 1 : 0;
   var last = performance.now();
 
