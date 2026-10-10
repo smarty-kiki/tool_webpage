@@ -9,7 +9,7 @@
 
    配置（canvas 的 data 属性）：
      data-engine="gl"（默认）| "three"
-     data-mode="flow"（默认）| "queue" | "scan" | "net" | "wire" | "sop" | "cue" | "local" | "slot" —— gl 引擎
+     data-mode="flow"（默认）| "queue" | "scan" | "net" | "wire" | "sop" | "cue" | "local" | "slot" | "listen" —— gl 引擎
      data-scene="cards" | "nebula"                     —— three 引擎
      data-colors="#a,#b,#c"   三色品牌色，缺省从 --accent 推导
      data-speed="1"           速度倍率
@@ -55,7 +55,7 @@
   var colB = parseHex(colors[1]) || [0.369, 0.647, 0.980];   /* 蓝 */
   var colC = parseHex(colors[2]) || [0.541, 0.592, 1.000];   /* 紫 */
 
-  var MODES = { flow: 0, queue: 1, scan: 2, net: 3, wire: 4, sop: 5, cue: 6, local: 7, slot: 8 };
+  var MODES = { flow: 0, queue: 1, scan: 2, net: 3, wire: 4, sop: 5, cue: 6, local: 7, slot: 8, listen: 9 };
   var mode = MODES[canvas.getAttribute('data-mode')] || 0;
   var speed = parseFloat(canvas.getAttribute('data-speed')) || 1;
   var dot = parseFloat(canvas.getAttribute('data-dot'));
@@ -629,6 +629,107 @@
     '    col = mix(col, mix(vec3(1.0), u_colC, 0.55), lTrail * 0.40);',
     '    col = mix(col, mix(vec3(1.0), u_colA, 0.35), lRip * 0.45);',
     '    col = mix(col, vec3(1.0), flash * 0.35);',
+    '    col = mix(col, vec3(1.0), halo * 0.30);',
+    '  } else if (u_mode == 9) {',
+    '    /* ---- listen：两路声音同时在跑（麦克风里是我、电脑里是对方），',
+    '            跑到右边凝成一条条待办：落定一颗涟漪，补全的亮一下橙、',
+    '            作废的划一道红 ---- */',
+    '    float ut = u_time;',
+    '    vec2 wp = p + sway * 0.4;',
+    '    float xk = clamp(aspect / 1.9, 0.30, 1.0);',    /* 窄画布上把待办列收紧 */
+    '    float pillX = aspect * 0.565;',                  /* 待办列：落在文案与截图中间的空档 */
+    '    float phw = 0.082 * xk;',
+    '    float phh = 0.035;',
+    '    /* 两路声音：一段一段地说，不是一直在响 */',
+    '    float lanes = 0.0;',
+    '    vec3 laneCol = vec3(0.0);',
+    '    for (int L = 0; L < 2; L++) {',
+    '      float fl = float(L);',
+    '      vec3 lc = L == 0 ? u_colC : u_colA;',          /* 0 = 麦克风（我），1 = 电脑里（对方） */
+    '      float yc0 = L == 0 ? 0.615 : 0.470;',
+    '      float yc1 = L == 0 ? 0.578 : 0.512;',          /* 越往右越汇拢 */
+    '      float yc = mix(yc0, yc1, clamp(wp.x / max(pillX, 1e-3), 0.0, 1.0));',
+    '      float dy = wp.y - yc;',
+    '      float along = smoothstep(-0.03, 0.05, wp.x) * (1.0 - smoothstep(pillX - 0.15, pillX - 0.04, wp.x));',
+    '      float sp = wp.x * 0.55 - ut * 0.20 + fl * 3.7;',   /* 说话的节奏 */
+    '      float env = smoothstep(0.34, 0.72, vnoise(vec2(sp, fl * 7.3 + 1.1)));',
+    '      float amp = (0.005 + 0.026 * env) * along;',
+    '      float cell = 0.024;',                          /* 波形柱：一根根竖条 */
+    '      float cx = floor(wp.x / cell) * cell + cell * 0.5;',
+    '      float barX = smoothstep(0.0085, 0.0030, abs(wp.x - cx));',
+    '      float rh = 0.30 + 0.85 * vnoise(vec2(cx * 9.0, ut * 2.1 + fl * 5.0));',
+    '      float hgt = amp * rh;',
+    '      float bars = barX * smoothstep(hgt, hgt - 0.0035, abs(dy));',
+    '      float line = smoothstep(0.0016, 0.0, abs(dy)) * along * 0.30;',
+    '      float w = bars * (0.70 + 0.50 * env) + line;',
+    '      lanes += w;',
+    '      laneCol += lc * w;',
+    '    }',
+    '    /* 待办：一条条落定 */',
+    '    float pillT = 15.0;',
+    '    float pp = fract(ut / pillT);',
+    '    float pBody = 0.0;',
+    '    float pEdge = 0.0;',
+    '    float pBadge = 0.0;',
+    '    float pText = 0.0;',
+    '    float pFlash = 0.0;',
+    '    float pStrike = 0.0;',
+    '    float pGone = 0.0;',
+    '    float pRipple = 0.0;',
+    '    for (int k = 0; k < 3; k++) {',
+    '      float fk = float(k);',
+    '      float yk = 0.655 - fk * 0.112;',
+    '      float tOn = 0.05 + fk * 0.16;',               /* 依次落定 */
+    '      float land = smoothstep(tOn, tOn + 0.12, pp);',
+    '      land = land * land * (3.0 - 2.0 * land);',
+    '      float tOff = fk > 1.5 ? 0.86 : 0.91;',        /* 作废那条先走 */
+    '      float vis = land * (1.0 - smoothstep(tOff, tOff + 0.07, pp));',
+    '      float xc = pillX - (1.0 - land) * 0.42 * xk;',/* 从声音那头滑进来 */
+    '      vec2 bx = slotBox(wp, xc, yk, phw, phh);',
+    '      pBody += bx.x * vis;',
+    '      pEdge += bx.y * vis;',
+    '      float bd = localDist(wp - vec2(xc - phw + 0.031 * xk, yk), vec2(0.0135 * xk, 0.0135 * xk), 4.0);',
+    '      pBadge += (1.0 - smoothstep(-0.0030, 0.0020, bd)) * vis;',   /* 左边的编号章 */
+    '      float tx = (wp.x - xc) / phw;',
+    '      pText += smoothstep(0.0026, 0.0, abs(wp.y - yk - 0.0125))',  /* 块里那行字 */
+    '             * smoothstep(-0.60, -0.46, tx) * smoothstep(0.82, 0.68, tx) * vis;',
+    '      /* 补全：第 2 条被补充，亮一下橙（连同新填进去的那格） */',
+    '      float up = (fk > 0.5 && fk < 1.5 ? 1.0 : 0.0)',
+    '               * smoothstep(0.56, 0.61, pp) * (1.0 - smoothstep(0.68, 0.75, pp));',
+    '      pFlash += bx.x * up;',
+    '      pFlash += slotBox(wp, xc + phw * 0.14, yk + 0.0125, phw * 0.56, 0.0125).x * up * 1.3;',
+    '      /* 作废：第 3 条划一道红，整条跟着泛红 */',
+    '      float st = (fk > 1.5 ? 1.0 : 0.0) * smoothstep(0.66, 0.73, pp);',
+    '      pStrike += smoothstep(0.0032, 0.0, abs(wp.y - yk))',
+    '               * smoothstep(phw * 1.04, phw * 0.86, abs(wp.x - xc)) * st;',
+    '      pGone += bx.x * st;',
+    '      /* 落定的那一圈涟漪 */',
+    '      float rp = clamp((pp - tOn - 0.12) / 0.13, 0.0, 1.0);',
+    '      float dq = length(wp - vec2(pillX, yk));',
+    '      pRipple += smoothstep(0.006, 0.0, abs(dq - rp * 0.15)) * (1.0 - rp) * step(tOn + 0.12, pp);',
+    '    }',
+    '    float focus = 0.55 + 0.85 * halo;',
+    '    float lLane = clamp(lanes * focus, 0.0, 1.0);',
+    '    vec3 cLane = laneCol / max(length(laneCol), 1e-4);',
+    '    float lBody = clamp(pBody * focus, 0.0, 1.0);',
+    '    float lEdge = clamp(pEdge * focus, 0.0, 1.0);',
+    '    float lBadge = clamp(pBadge * focus, 0.0, 1.0);',
+    '    float lText = clamp(pText * focus, 0.0, 1.0);',
+    '    float lFlash = clamp(pFlash * focus, 0.0, 1.0);',
+    '    float lStrike = clamp(pStrike * focus, 0.0, 1.0);',
+    '    float lGone = clamp(pGone * focus, 0.0, 1.0);',
+    '    float lRip = clamp(pRipple * focus, 0.0, 1.0);',
+    '    density = clamp(lLane * 0.40 + lBody * 0.45 + lEdge * 0.50 + lBadge * 0.55 + lText * 0.35',
+    '                    + lFlash * 0.85 + lStrike * 0.70 + lGone * 0.60 + lRip * 0.55, 0.0, 1.0);',
+    '    col = mix(col, mix(vec3(1.0), cLane, 0.85), lLane * 0.46);',   /* 两路声音 */
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.16), lBody * 0.50);',  /* 待办块：极淡的暖底 */
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.45), lEdge * 0.58);',  /* 块的描边 */
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.55), lBadge * 0.72);', /* 编号章 */
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.30), lText * 0.42);',  /* 一行字 */
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.92), lFlash * 0.72);', /* 补全：橙 */
+    '    col = mix(col, mix(vec3(1.0), u_colB, 0.85), lGone * 0.50);',  /* 整条作废：泛红 */
+    '    col = mix(col, mix(vec3(1.0), u_colB, 0.92), lStrike * 0.85);',/* 删除线：红 */
+    '    col = mix(col, mix(vec3(1.0), u_colA, 0.35), lRip * 0.50);',   /* 落定涟漪 */
     '    col = mix(col, vec3(1.0), halo * 0.30);',
     '  } else {',
     '    /* ---- cue：指哪打哪——光标弧线飞向目标、收缩锁定圈、点中泛起红色涟漪 ---- */',

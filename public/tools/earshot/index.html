@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n-zh="耳录 EarShot — 开会不用记笔记，待办自己列到屏幕边上" data-i18n-en="EarShot — take no notes in meetings, the to-dos line up on your screen">耳录 EarShot — 开会不用记笔记，待办自己列到屏幕边上</title>
+  <meta name="description" data-i18n-zh="常驻屏幕右边的 macOS 会议待办助手：麦克风里是你、电脑里是对方，两边的话一起听，几秒内把「谁、什么时候、要交什么」列成一条条待办。语音识别在这台 Mac 上完成，声音不出你的电脑；MIT 开源。" data-i18n-en="A macOS meeting to-do assistant on the edge of your screen: it hears both sides at once — you on the mic, the other party in your computer's audio — and lines up who owes what, by when, within seconds. Speech recognition runs on your Mac and your voice never leaves it. MIT open source.">
+  <link rel="icon" type="image/png" href="../../assets/img/earshot.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    /* ===== 耳录 EarShot 页专属：真机面板 + 落定通知 + 屏幕右缘 ===== */
+
+    /* -- Hero：屏幕右边的面板（深色画面套一层相框） -- */
+    .es-panel {
+      margin: 0 0 0 auto;
+      width: min(296px, 62%);
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(30, 24, 12, 0.14);
+      background: #17171a;
+      box-shadow: 0 30px 80px rgba(70, 53, 25, 0.26), 0 2px 10px rgba(70, 53, 25, 0.08);
+    }
+    .es-panel img { display: block; width: 100%; height: auto; }
+
+    /* -- Hero：一条待办刚落定的通知（叠在面板左下角） -- */
+    .es-note {
+      position: absolute;
+      left: 0;
+      bottom: 6px;
+      z-index: 2;
+      width: min(318px, 76%);
+      padding: 13px 15px 11px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(30, 24, 12, 0.1);
+      box-shadow: 0 24px 60px rgba(70, 53, 25, 0.22), 0 2px 8px rgba(70, 53, 25, 0.08);
+      color: #23253a;
+    }
+    .es-note-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+    .es-note-head img { width: 24px; height: 24px; border-radius: 7px; flex: none; }
+    .es-note-app { font-size: 12.5px; font-weight: 700; color: #3a3d52; }
+    .es-note-when { margin-left: auto; font-size: 11.5px; color: #8b90a4; }
+    .es-note-title { font-size: 13.5px; font-weight: 800; margin-bottom: 4px; }
+    .es-note-title i {
+      font-style: normal;
+      font-size: 10.5px;
+      font-weight: 700;
+      vertical-align: 1px;
+      margin-left: 5px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      color: var(--accent-ink);
+      background: var(--accent-soft);
+    }
+    .es-note-line { font-size: 13px; font-weight: 600; }
+    .es-note-meta { font-size: 12.5px; color: #6f7488; }
+    .es-note-btns { display: flex; gap: 8px; margin-top: 12px; }
+    .es-note-btn {
+      flex: 1;
+      text-align: center;
+      padding: 7px 0;
+      border-radius: 9px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #3a3d52;
+      background: rgba(30, 24, 12, 0.055);
+      border: 1px solid rgba(30, 24, 12, 0.1);
+    }
+    .es-note-btn.primary { color: var(--btn-text); background: var(--accent); border-color: var(--accent); }
+
+    /* -- 屏幕边缘的公民（横带） -- */
+    .es-guard {
+      margin-top: 18px;
+      padding: 32px 36px;
+      border-radius: 20px;
+      background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 62%),
+        var(--card);
+      border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+    }
+    .es-guard-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 22px; }
+    .es-guard-ico {
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
+      flex: none;
+      background: var(--accent-soft);
+      color: var(--accent-ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .es-guard-ico svg { width: 21px; height: 21px; }
+    .es-guard h3 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+    .es-guard-head p { color: var(--muted); font-size: 14.5px; }
+    .es-guard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 18px 22px;
+    }
+    .es-guard-grid h4 { font-size: 14.5px; font-weight: 700; margin-bottom: 5px; }
+    .es-guard-grid p { color: var(--muted); font-size: 13.5px; }
+
+    /* -- 界面一览：真机截图画廊 -- */
+    .es-shots {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      max-width: 880px;
+      margin: 32px auto 0;
+    }
+    .es-shot {
+      margin: 0;
+      padding: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 28px rgba(70, 53, 25, 0.07);
+    }
+    .es-shot img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      border: 1px solid rgba(30, 24, 12, 0.1);
+      background: #17171a;
+    }
+    .es-shot figcaption { margin-top: 12px; font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+
+    /* 屏幕右缘那条：整行铺开，两条注释贴在把手左边 */
+    .es-shot.wide { grid-column: 1 / -1; position: relative; }
+    .es-shot.wide img { background: #202022; }
+    .es-chips {
+      position: absolute;
+      right: 14%;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+    .es-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 13px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(30, 24, 12, 0.1);
+      box-shadow: 0 10px 26px rgba(20, 16, 8, 0.22);
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #3a3226;
+      white-space: nowrap;
+    }
+    .es-chip .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex: none;
+      background: #ff4a3d;
+      box-shadow: 0 0 0 3px rgba(255, 74, 61, 0.18);
+    }
+    .es-chip .count {
+      width: 17px;
+      height: 17px;
+      border-radius: 6px;
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ff9e0a;
+      color: #3a2400;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    /* -- 隐私 / 花费双卡 -- */
+    .es-split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .es-card {
+      display: flex;
+      flex-direction: column;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 30px;
+    }
+    .es-card h3 { font-size: 17.5px; font-weight: 800; margin-bottom: 8px; }
+    .es-card > p { color: var(--muted); font-size: 14.5px; margin-bottom: 18px; }
+    .es-card .tags { margin-top: auto; }
+
+    /* -- 快速上手：左边三步、右边设置窗口 -- */
+    .es-get { display: grid; grid-template-columns: 0.98fr 1.02fr; gap: 30px; align-items: start; }
+    .es-get .steps { grid-template-columns: 1fr; }
+    .es-fig {
+      margin: 0;
+      padding: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 28px rgba(70, 53, 25, 0.07);
+    }
+    .es-fig img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      border: 1px solid rgba(30, 24, 12, 0.1);
+      background: #f7f7f9;
+    }
+    .es-fig figcaption { margin-top: 12px; font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+
+    /* -- 行内代码（步骤 / FAQ 里的小字） -- */
+    .feature-card code, .faq-a code, .es-card code, .note-body code, .step code {
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.85em;
+      background: rgba(30, 24, 12, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1px 6px;
+      color: var(--accent-ink);
+      word-break: break-all;
+    }
+    .note-body p code { display: inline; padding: 2px 7px; font-size: 12.5px; margin-top: 0; }
+
+    @media (max-width: 920px) {
+      .es-split { grid-template-columns: 1fr; }
+      .es-get { grid-template-columns: 1fr; }
+      .es-get .steps { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .es-shots { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .es-chips { display: none; }
+    }
+    @media (max-width: 600px) {
+      /* 窄屏：面板居中，通知压在下沿，不再左右错位 */
+      .es-panel { width: min(300px, 74%); margin: 0 auto; }
+      .es-note { position: static; width: min(330px, 100%); margin: -34px auto 0; }
+    }
+    @media (max-width: 560px) {
+      .es-guard { padding: 26px 22px; }
+      .es-guard-head { gap: 12px; }
+    }
+  </style>
+</head>
+<body style="--accent: #FF8A00; --btn-text: #2b1400;">
+
+  <header class="site-header">
+    <div class="container nav">
+      <a class="back-link" href="../../">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        <span data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</span>
+      </a>
+      <div class="nav-right">
+        <a class="nav-link hide-sm" href="https://github.com/smarty-kiki/ear_shot" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn btn-primary btn-sm" href="https://github.com/smarty-kiki/ear_shot/releases" target="_blank" rel="noopener"
+           data-i18n-zh="下载" data-i18n-en="Download">下载</a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <canvas id="hero-gl" aria-hidden="true"
+              data-mode="listen" data-colors="#ff8a00,#ff4a3d,#5b9df9"></canvas>
+      <div class="container hero-inner">
+
+        <div class="hero-copy">
+          <div class="hero-app">
+            <img src="../../assets/img/earshot.png" alt="耳录 EarShot">
+            <div>
+              <div class="hero-app-name">耳录 EarShot</div>
+              <div class="hero-app-cat" data-i18n-zh="常驻屏幕右边的 macOS 会议待办助手" data-i18n-en="A macOS meeting to-do assistant on the edge of your screen">常驻屏幕右边的 macOS 会议待办助手</div>
+            </div>
+          </div>
+          <h1 class="hero-title"
+              data-i18n-zh="开会不用记笔记，<br><em>待办自己列到屏幕边上</em>。"
+              data-i18n-en="Take no notes in the meeting —<br><em>the to-dos line up on your screen</em>.">开会不用记笔记，<br><em>待办自己列到屏幕边上</em>。</h1>
+          <p class="hero-sub"
+             data-i18n-zh="开着它开会：麦克风里是你，电脑里是会议对方，两边的话一起听，几秒内把「谁、什么时候、要交什么」一条条列在屏幕右边。会开完，待办已经排好了——不用回听录音，也不用再整理一遍笔记。"
+             data-i18n-en="Turn it on when the meeting starts: your mic is you, your computer's audio is the other side, and both are heard at once. Within seconds, who-owes-what-by-when lines up on the right edge of your screen. By the time the meeting ends the list is already there — no recording to replay, no notes to tidy up.">开着它开会：麦克风里是你，电脑里是会议对方，两边的话一起听，几秒内把「谁、什么时候、要交什么」一条条列在屏幕右边。会开完，待办已经排好了——不用回听录音，也不用再整理一遍笔记。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/ear_shot/releases" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
+              <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/smarty-kiki/ear_shot" target="_blank" rel="noopener"
+               data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
+          </div>
+          <div class="facts">
+            <span class="fact">macOS 26+</span>
+            <span class="fact" data-i18n-zh="MIT 开源" data-i18n-en="MIT open source">MIT 开源</span>
+            <span class="fact" data-i18n-zh="语音不出本机" data-i18n-en="Speech stays on your Mac">语音不出本机</span>
+            <span class="fact" data-i18n-zh="不占 Dock、不弹窗" data-i18n-en="No Dock icon, no windows">不占 Dock、不弹窗</span>
+          </div>
+        </div>
+
+        <!-- 真机面板 + 一条「待办落定」的通知（纯装饰） -->
+        <div class="mock" aria-hidden="true">
+          <figure class="es-panel">
+            <img src="../../assets/img/earshot-panel.png" alt="">
+          </figure>
+          <div class="es-note">
+            <div class="es-note-head">
+              <img src="../../assets/img/earshot.png" alt="">
+              <span class="es-note-app" data-i18n-zh="耳录 EarShot" data-i18n-en="EarShot">耳录 EarShot</span>
+              <span class="es-note-when" data-i18n-zh="刚刚" data-i18n-en="just now">刚刚</span>
+            </div>
+            <p class="es-note-title">
+              <span data-i18n-zh="听到一条待办" data-i18n-en="A to-do, caught">听到一条待办</span><i data-i18n-zh="刚听到的" data-i18n-en="just heard">刚听到的</i>
+            </p>
+            <p class="es-note-line" data-i18n-zh="整理季度复盘 PPT，下周五前发给老王" data-i18n-en="Q3 review deck — to Wang by next Friday">整理季度复盘 PPT，下周五前发给老王</p>
+            <p class="es-note-meta" data-i18n-zh="时间 下周五前 · 人物 老王 · 输出物 PPT" data-i18n-en="When next Friday · Who Wang · Deliverable deck">时间 下周五前 · 人物 老王 · 输出物 PPT</p>
+            <div class="es-note-btns">
+              <span class="es-note-btn primary" data-i18n-zh="复制这条" data-i18n-en="Copy this one">复制这条</span>
+              <span class="es-note-btn" data-i18n-zh="展开看全部" data-i18n-en="Open the panel">展开看全部</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 痛点 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="为什么做它" data-i18n-en="WHY">为什么做它</span>
+          <h2 class="section-title"
+              data-i18n-zh="会开得挺顺，要你做的事却没留下" data-i18n-en="The meeting went fine — but nothing landed on you">会开得挺顺，要你做的事却没留下</h2>
+          <p class="section-sub"
+             data-i18n-zh="记笔记的人听得最差，不记的人散会就忘——要你做的那些事，总是在别的地方丢掉的。"
+             data-i18n-en="Whoever takes the notes listens the least; whoever doesn't forgets by the door. Either way, what you owe someone goes missing somewhere.">记笔记的人听得最差，不记的人散会就忘——要你做的那些事，总是在别的地方丢掉的。</p>
+        </div>
+
+        <div class="pain-grid">
+          <div class="pain-card">
+            <h3 data-i18n-zh="记了一整页，回头还得再挑一遍" data-i18n-en="A full page of notes, and a second pass to sort it">记了一整页，回头还得再挑一遍</h3>
+            <p data-i18n-zh="笔记记下来的是流水账：谁提了什么、聊到哪儿了，真正落到你头上的活混在里面，会后得再读一遍才挑得出来。"
+               data-i18n-en="What you wrote down is a transcript: who raised what, where the conversation went. The part that's actually yours is buried inside it, and you read the whole thing again to dig it out.">笔记记下来的是流水账：谁提了什么、聊到哪儿了，真正落到你头上的活混在里面，会后得再读一遍才挑得出来。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="一边听一边记，两边都顾不上" data-i18n-en="Take notes and listen — you can't do both">一边听一边记，两边都顾不上</h3>
+            <p data-i18n-zh="忙着打字就跟不上讨论，抬起头又漏了刚说定的时间。记得越认真，听得越差。"
+               data-i18n-en="Type and you fall behind the discussion; look up and you've missed the time someone just agreed to. The more carefully you take notes, the worse you listen.">忙着打字就跟不上讨论，抬起头又漏了刚说定的时间。记得越认真，听得越差。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="散会那一刻，细节已经开始模糊" data-i18n-en="By the time you leave, the details are already soft">散会那一刻，细节已经开始模糊</h3>
+            <p data-i18n-zh="谁答应了、什么时候交、交给谁——当时都清楚，走出会议室就开始不确定，还得在群里再问一遍。"
+               data-i18n-en="Who promised what, by when, to whom — all clear in the room, all uncertain in the corridor, and you end up asking again in the group chat.">谁答应了、什么时候交、交给谁——当时都清楚，走出会议室就开始不确定，还得在群里再问一遍。</p>
+          </div>
+        </div>
+
+        <p class="pain-transition"
+           data-i18n-zh="耳录换了个方式：<em>它替你听</em>——散会时，待办已经一条条排好了。"
+           data-i18n-en="EarShot does it differently: <em>it listens for you</em>. When the meeting ends, the list is already standing.">耳录换了个方式：<em>它替你听</em>——散会时，待办已经一条条排好了。</p>
+      </div>
+    </section>
+
+    <!-- ============ 功能 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="核心能力" data-i18n-en="FEATURES">核心能力</span>
+          <h2 class="section-title"
+              data-i18n-zh="它不整理录音，它交给你一张待办清单" data-i18n-en="It doesn't hand you a recording — it hands you a list">它不整理录音，它交给你一张待办清单</h2>
+          <p class="section-sub"
+             data-i18n-zh="会后要花时间消化的东西，这里一条都没有：听到的每一句话，都当场落到该落的那一条上。"
+             data-i18n-en="Nothing here needs digesting afterwards: every sentence heard lands, on the spot, on the row it belongs to.">会后要花时间消化的东西，这里一条都没有：听到的每一句话，都当场落到该落的那一条上。</p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12v1"/><path d="M7 8v8"/><path d="M11 4v16"/><path d="M15 8v8"/><path d="M19 11v3"/></svg>
+            </div>
+            <h3 data-i18n-zh="两路声音，各归各的" data-i18n-en="Two audio streams, kept apart">两路声音，各归各的</h3>
+            <p data-i18n-zh="麦克风里是你说的，电脑里是会议对方说的，两边分开听、分开认人。你说「我」揽下的活、对方说的「你」，人物栏各落各的名字，不用猜是谁说的。"
+               data-i18n-en="Your mic carries you; your computer's audio carries them. The two are heard — and attributed — separately. A job you take with &ldquo;I'll do it&rdquo; and a &ldquo;you&rdquo; aimed at you land under the right name, with nothing to guess.">麦克风里是你说的，电脑里是会议对方说的，两边分开听、分开认人。你说「我」揽下的活、对方说的「你」，人物栏各落各的名字，不用猜是谁说的。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3 1.8"/><path d="M7 3.5 4.5 6 7 8.5"/><path d="M17 3.5 19.5 6 17 8.5"/></svg>
+            </div>
+            <h3 data-i18n-zh="说完几秒就出现" data-i18n-en="On screen seconds after it's said">说完几秒就出现</h3>
+            <p data-i18n-zh="一句话说完，几秒内待办就落在面板上，不是等散会再总结一轮。之后聊到的补充——时间、地点、要交什么——会自动补进同一条里，越聊越全。"
+               data-i18n-en="Finish the sentence and the to-do is on the panel seconds later — not summarised after the meeting. Everything said afterwards that fills it in — the time, the place, the deliverable — is folded into the same row. It gets fuller as you talk.">一句话说完，几秒内待办就落在面板上，不是等散会再总结一轮。之后聊到的补充——时间、地点、要交什么——会自动补进同一条里，越聊越全。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h6"/><path d="M7 13h10"/><path d="M7 17h4"/></svg>
+            </div>
+            <h3 data-i18n-zh="一条待办，六个字段" data-i18n-en="One to-do, six fields">一条待办，六个字段</h3>
+            <p data-i18n-zh="待办、时间、地点、人物、输出物、说明——一次列清。口语里的「下周五之前」「下周三下午」直接落成时间，不用自己换算。"
+               data-i18n-en="The task, the time, the place, the people, the deliverable, a note — all in one row. Spoken shapes of time like &ldquo;before next Friday&rdquo; and &ldquo;Wednesday afternoon&rdquo; come out as actual dates, with no mental arithmetic.">待办、时间、地点、人物、输出物、说明——一次列清。口语里的「下周五之前」「下周三下午」直接落成时间，不用自己换算。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8.5 8.5h2v7"/><path d="M14 9.2a2.4 2.4 0 0 1 3.6 2.1v.4a2.4 2.4 0 0 1-3.6 2.1"/></svg>
+            </div>
+            <h3 data-i18n-zh="编号可以念出来" data-i18n-en="Say the number out loud">编号可以念出来</h3>
+            <p data-i18n-zh="每条待办有个固定编号，屏幕上写着「待办 3」，你照着念「待办 3 的地点改成会议室 B」，它就知道你说的是哪条——手不用离开键盘，会也不用停。"
+               data-i18n-en="Every to-do carries a fixed number, shown right there on the row. Read it out — &ldquo;to-do 3, change the place to Meeting Room B&rdquo; — and it knows exactly which one you mean. Your hands never leave the keyboard and the meeting never pauses.">每条待办有个固定编号，屏幕上写着「待办 3」，你照着念「待办 3 的地点改成会议室 B」，它就知道你说的是哪条——手不用离开键盘，会也不用停。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg>
+            </div>
+            <h3 data-i18n-zh="每一次修改都看得见" data-i18n-en="Every change is visible">每一次修改都看得见</h3>
+            <p data-i18n-zh="新补上的内容亮一下橙色，被改掉的划上红色删除线，整条不要了就整块变红——它动了哪一条、动了哪儿，扫一眼就知道，不会悄悄改你的清单。"
+               data-i18n-en="Newly filled-in details flash orange, a replaced detail gets struck through in red, and a row that's been dropped turns red as a whole. Which row changed, and where — one glance, never a silent edit.">新补上的内容亮一下橙色，被改掉的划上红色删除线，整条不要了就整块变红——它动了哪一条、动了哪儿，扫一眼就知道，不会悄悄改你的清单。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="14" y="4" width="7" height="16" rx="3"/><path d="M9 9h3"/><path d="M9 12h2"/><path d="M9 15h3"/></svg>
+            </div>
+            <h3 data-i18n-zh="一枚把手，贴在屏幕右边" data-i18n-en="One small handle on the right edge">一枚把手，贴在屏幕右边</h3>
+            <p data-i18n-zh="收着的时候只占屏幕右边一条边，圆点慢闪就是在听。想看内容点开，看完点收起；点任意一条就复制走——不占 Dock，也不弹主窗口。"
+               data-i18n-en="Collapsed, it's a sliver on the right edge of the screen with a slowly blinking dot that means it's listening. Click to open, click to close; click any row to copy it. No Dock icon, no main window.">收着的时候只占屏幕右边一条边，圆点慢闪就是在听。想看内容点开，看完点收起；点任意一条就复制走——不占 Dock，也不弹主窗口。</p>
+          </div>
+        </div>
+
+        <!-- 屏幕边缘的公民 -->
+        <div class="es-guard">
+          <div class="es-guard-head">
+            <span class="es-guard-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="13" height="18" rx="3"/><path d="M5 8v8"/><path d="M2.5 10v4"/></svg>
+            </span>
+            <div>
+              <h3 data-i18n-zh="不碍事，也不装死" data-i18n-en="Out of your way — and never quietly dead">不碍事，也不装死</h3>
+              <p data-i18n-zh="它整场会都在你屏幕边上，所以你更该知道它什么时候在听、什么时候出了问题。"
+                 data-i18n-en="It sits beside you for the whole meeting — so you should always know when it's listening, and when it isn't.">它整场会都在你屏幕边上，所以你更该知道它什么时候在听、什么时候出了问题。</p>
+            </div>
+          </div>
+          <div class="es-guard-grid">
+            <div>
+              <h4 data-i18n-zh="点击才展开" data-i18n-en="It opens on a click">点击才展开</h4>
+              <p data-i18n-zh="不是鼠标划过就弹出来——只有点它才开。把手旁边那圈留白点下去，点到的是下面的窗口，不是它。"
+                 data-i18n-en="Not on hover — only when you click it. And the glow around the handle is click-through: a click there lands on the window underneath.">不是鼠标划过就弹出来——只有点它才开。把手旁边那圈留白点下去，点到的是下面的窗口，不是它。</p>
+            </div>
+            <div>
+              <h4 data-i18n-zh="两条小波形，谁在说一眼就知道" data-i18n-en="Two little waveforms">两条小波形，谁在说一眼就知道</h4>
+              <p data-i18n-zh="标题栏上一条是「我」、一条是对方，扫一眼就知道两边有没有声音，不用去读文字。"
+                 data-i18n-en="One for you, one for them, right in the title bar — a glance tells you whether each side has sound, without reading a word.">标题栏上一条是「我」、一条是对方，扫一眼就知道两边有没有声音，不用去读文字。</p>
+            </div>
+            <div>
+              <h4 data-i18n-zh="出错不静默" data-i18n-en="It never fails quietly">出错不静默</h4>
+              <p data-i18n-zh="没填 Key、接口出错，面板上直接写明原因和该按哪个按钮，不会悄悄没反应。"
+                 data-i18n-en="No key, a failed request — the panel says what went wrong and which button fixes it. Never a silent nothing.">没填 Key、接口出错，面板上直接写明原因和该按哪个按钮，不会悄悄没反应。</p>
+            </div>
+            <div>
+              <h4 data-i18n-zh="用量看得见" data-i18n-en="Usage in plain sight">用量看得见</h4>
+              <p data-i18n-zh="标题栏上那个数字是这次打开以来累计花掉的分析用量，每成功整理一次就涨——花了多少，不用去别处查。"
+                 data-i18n-en="The number in the title bar is the analysis usage since you opened it, rising once per successful pass — what you've spent, without going anywhere to look it up.">标题栏上那个数字是这次打开以来累计花掉的分析用量，每成功整理一次就涨——花了多少，不用去别处查。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 界面一览 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="界面一览" data-i18n-en="A LOOK INSIDE">界面一览</span>
+          <h2 class="section-title"
+              data-i18n-zh="它长什么样，占多大地方" data-i18n-en="What it looks like, and how little room it takes">它长什么样，占多大地方</h2>
+          <p class="section-sub"
+             data-i18n-zh="三张真机画面：改动看得见、点一条会发生什么、收起来时它待在哪儿。"
+             data-i18n-en="Three real screenshots: what an edit looks like, what a click does, and where it lives when collapsed.">三张真机画面：改动看得见、点一条会发生什么、收起来时它待在哪儿。</p>
+        </div>
+
+        <div class="es-shots">
+          <figure class="es-shot">
+            <img src="../../assets/img/earshot-incremental.png" alt="">
+            <figcaption data-i18n-zh="聊到补充：新填进去的亮一下橙，被改掉的划一道红，整条不要了就整块变红。"
+                        data-i18n-en="The conversation fills it in: what's newly added flashes orange, what's replaced is struck through in red, and a dropped row turns red as a whole.">聊到补充：新填进去的亮一下橙，被改掉的划一道红，整条不要了就整块变红。</figcaption>
+          </figure>
+          <figure class="es-shot">
+            <img src="../../assets/img/earshot-copied.png" alt="">
+            <figcaption data-i18n-zh="点任意一条，六个字段的完整文字直接进剪贴板——空的字段不出现，不用自己拼。"
+                        data-i18n-en="Click any row and the full text of all six fields goes straight to your clipboard — empty fields left out, nothing to assemble by hand.">点任意一条，六个字段的完整文字直接进剪贴板——空的字段不出现，不用自己拼。</figcaption>
+          </figure>
+          <figure class="es-shot wide">
+            <img src="../../assets/img/earshot-edge.png" alt="">
+            <div class="es-chips" aria-hidden="true">
+              <span class="es-chip"><i class="dot"></i><span data-i18n-zh="圆点慢闪 = 正在听" data-i18n-en="Slow-blink dot = listening">圆点慢闪 = 正在听</span></span>
+              <span class="es-chip"><i class="count">2</i><span data-i18n-zh="橙色数字 = 有新待办" data-i18n-en="Orange number = new to-dos">橙色数字 = 有新待办</span></span>
+            </div>
+            <figcaption data-i18n-zh="收起来的时候，它就贴着屏幕右边这一条：点了展开，不点就一直安静地听着。"
+                        data-i18n-en="Collapsed, it hugs the right edge like this: click to open it, or leave it and it just keeps listening, quietly.">收起来的时候，它就贴着屏幕右边这一条：点了展开，不点就一直安静地听着。</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 隐私与花费 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="隐私与花费" data-i18n-en="PRIVACY &amp; COST">隐私与花费</span>
+          <h2 class="section-title"
+              data-i18n-zh="一屋子人的声音，不该离开这间屋子" data-i18n-en="A room full of voices shouldn't leave the room">一屋子人的声音，不该离开这间屋子</h2>
+          <p class="section-sub"
+             data-i18n-zh="开会要录音、要上传、还要先让所有人同意——耳录把这件事整个绕开了。"
+             data-i18n-en="Recording a meeting means uploading it and getting everyone's consent first — EarShot sidesteps all of that.">开会要录音、要上传、还要先让所有人同意——耳录把这件事整个绕开了。</p>
+        </div>
+
+        <div class="es-split">
+          <div class="es-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <h3 data-i18n-zh="听到的话，先留在这台 Mac 上" data-i18n-en="What it hears stays on this Mac first">听到的话，先留在这台 Mac 上</h3>
+            <p data-i18n-zh="转文字在这台 Mac 上完成，声音不往外传，断网也能用，不用注册、不用登录。真正离开本机的只有一样：最近约 1200 字听到的文字，发给你自己填的 DeepSeek 接口，用来把大白话整理成一条条待办（字数可以调）。待办和文字都不写进硬盘，退出程序就清空。"
+               data-i18n-en="Transcription happens on this Mac. The audio goes nowhere, it works offline, and there's no sign-up or login. Only one thing ever leaves the machine: the last ~1200 characters of transcribed text, sent to the DeepSeek endpoint you configured yourself, to turn plain speech into rows (the length is adjustable). Neither the to-dos nor the text are written to disk — quit the app and it's all gone.">转文字在这台 Mac 上完成，声音不往外传，断网也能用，不用注册、不用登录。真正离开本机的只有一样：最近约 1200 字听到的文字，发给你自己填的 DeepSeek 接口，用来把大白话整理成一条条待办（字数可以调）。待办和文字都不写进硬盘，退出程序就清空。</p>
+            <div class="tags">
+              <span class="tag" data-i18n-zh="语音不出本机" data-i18n-en="Audio stays local">语音不出本机</span>
+              <span class="tag" data-i18n-zh="不注册、不登录" data-i18n-en="No sign-up, no login">不注册、不登录</span>
+              <span class="tag" data-i18n-zh="退出即清空" data-i18n-en="Cleared on quit">退出即清空</span>
+            </div>
+          </div>
+
+          <div class="es-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/><path d="M14.5 9.5A2.5 2.5 0 0 0 12 8c-1.4 0-2.5.8-2.5 2s1.1 2 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2a2.5 2.5 0 0 1-2.5-1.5"/></svg>
+            </div>
+            <h3 data-i18n-zh="花钱吗？只花你自己的用量" data-i18n-en="Costs? Only your own usage">花钱吗？只花你自己的用量</h3>
+            <p data-i18n-zh="应用本体不收费（MIT 开源）。要自己准备的是一个 DeepSeek 的 Key：每次分析只花几百个 token，日常开会用很便宜。用多少花多少——没有订阅，也没有时长和次数限制。"
+               data-i18n-en="The app itself costs nothing (MIT open source). What you bring is a DeepSeek key of your own: a few hundred tokens per pass, which makes everyday meetings cheap. You pay for what you use — no subscription, no cap on length or number of meetings.">应用本体不收费（MIT 开源）。要自己准备的是一个 DeepSeek 的 Key：每次分析只花几百个 token，日常开会用很便宜。用多少花多少——没有订阅，也没有时长和次数限制。</p>
+            <div class="tags">
+              <span class="tag" data-i18n-zh="应用本体不收费" data-i18n-en="The app itself costs nothing">应用本体不收费</span>
+              <span class="tag" data-i18n-zh="只用自己的 Key" data-i18n-en="Your own key only">只用自己的 Key</span>
+              <span class="tag" data-i18n-zh="没有时长限制" data-i18n-en="No time limits">没有时长限制</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 三步上手 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="快速上手" data-i18n-en="GET STARTED">快速上手</span>
+          <h2 class="section-title"
+              data-i18n-zh="三步，让它开始替你听" data-i18n-en="Three steps and it's listening for you">三步，让它开始替你听</h2>
+          <p class="section-sub"
+             data-i18n-zh="不用注册、不用登录——装上、填上 Key、点一下开始监听。"
+             data-i18n-en="No sign-up, no login: install it, add your key, hit start listening.">不用注册、不用登录——装上、填上 Key、点一下开始监听。</p>
+        </div>
+
+        <div class="es-get">
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <h3 data-i18n-zh="下载安装" data-i18n-en="Install">下载安装</h3>
+              <p data-i18n-zh="在 Releases 下载 <code>EarShot-*.dmg</code>，打开后把 EarShot.app 拖进「应用程序」。要求 macOS 26 或更新。应用未经 Apple 公证，首次打开请右键点图标选「打开」。"
+                 data-i18n-en="Grab <code>EarShot-*.dmg</code> from Releases and drag EarShot.app into Applications. macOS 26 or later is required. The app isn't notarized, so on first launch right-click the icon and choose Open.">在 Releases 下载 <code>EarShot-*.dmg</code>，打开后把 EarShot.app 拖进「应用程序」。要求 macOS 26 或更新。应用未经 Apple 公证，首次打开请右键点图标选「打开」。</p>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <h3 data-i18n-zh="填上你的 Key" data-i18n-en="Add your key">填上你的 Key</h3>
+              <p data-i18n-zh="面板底栏点「设置」，填入在 platform.deepseek.com 申请的 Key，点「测试连接」确认能用。每次分析只花几百个 token。"
+                 data-i18n-en="Click Settings in the panel's bottom bar, paste the key you created at platform.deepseek.com, and hit Test connection. A pass costs a few hundred tokens.">面板底栏点「设置」，填入在 platform.deepseek.com 申请的 Key，点「测试连接」确认能用。每次分析只花几百个 token。</p>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <h3 data-i18n-zh="点「开始监听」，给一次权限" data-i18n-en="Hit start, grant one permission">点「开始监听」，给一次权限</h3>
+              <p data-i18n-zh="系统会要两个权限：<strong>屏幕录制</strong>是必须的（采电脑里的声音和麦克风都要用它，授权后要重启耳录才生效），<strong>麦克风</strong>可选，不给只是听不见你说的。然后说一句带待办的话——比如「下周五之前把季度复盘的 PPT 发给老王」。"
+                 data-i18n-en="macOS asks for two things: <strong>Screen Recording</strong> is required (both the computer's audio and the microphone are captured through it, and EarShot needs a restart after you grant it), while <strong>Microphone</strong> is optional — without it you simply aren't heard. Then say something with a to-do in it, like &ldquo;send Wang the Q3 review deck before next Friday&rdquo;.">系统会要两个权限：<strong>屏幕录制</strong>是必须的（采电脑里的声音和麦克风都要用它，授权后要重启耳录才生效），<strong>麦克风</strong>可选，不给只是听不见你说的。然后说一句带待办的话——比如「下周五之前把季度复盘的 PPT 发给老王」。</p>
+            </div>
+          </div>
+
+          <figure class="es-fig">
+            <img src="../../assets/img/earshot-settings.png" alt="">
+            <figcaption data-i18n-zh="设置窗口：Key 和模型、提醒与采集开关、识别语言，还有「我是谁」——都在一个窗口里，打开就能看全。"
+                        data-i18n-en="The settings window: key and model, notification and capture toggles, recognition language, and &ldquo;who am I&rdquo; — all in one window, nothing folded away.">设置窗口：Key 和模型、提醒与采集开关、识别语言，还有「我是谁」——都在一个窗口里，打开就能看全。</figcaption>
+          </figure>
+        </div>
+
+        <details class="note">
+          <summary data-i18n-zh="打开时提示「无法验证开发者」或「已损坏」？" data-i18n-en="macOS says &ldquo;cannot verify the developer&rdquo; — or worse, &ldquo;damaged&rdquo;?">打开时提示「无法验证开发者」或「已损坏」？</summary>
+          <div class="note-body">
+            <p data-i18n-zh="这个应用没有 Apple 开发者证书、没有做公证，所以首次打开会被 Gatekeeper 拦一下。放行一次即可："
+               data-i18n-en="The app isn't notarized (no Apple Developer certificate), so Gatekeeper stops the first launch. You only need to allow it once:">这个应用没有 Apple 开发者证书、没有做公证，所以首次打开会被 Gatekeeper 拦一下。放行一次即可：</p>
+            <ol>
+              <li data-i18n-zh="先双击打开一次，macOS 会提示无法验证开发者；"
+                  data-i18n-en="Try opening the app once — macOS will say it cannot verify the developer.">先双击打开一次，macOS 会提示无法验证开发者；</li>
+              <li data-i18n-zh="打开「系统设置 → 隐私与安全性」，在底部找到被拦的提示，点「仍要打开」。"
+                  data-i18n-en="Open System Settings → Privacy &amp; Security, find the blocked message, and click Open Anyway.">打开「系统设置 → 隐私与安全性」，在底部找到被拦的提示，点「仍要打开」。</li>
+            </ol>
+            <p data-i18n-zh="或者，在终端执行一次这条命令，之后就能正常打开："
+               data-i18n-en="Or run this once in Terminal, then open normally:">或者，在终端执行一次这条命令，之后就能正常打开：</p>
+            <code>xattr -dr com.apple.quarantine /Applications/EarShot.app</code>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="常见问题" data-i18n-en="FAQ">常见问题</span>
+          <h2 class="section-title"
+              data-i18n-zh="你可能想问" data-i18n-en="You might be wondering">你可能想问</h2>
+        </div>
+
+        <div class="faq">
+          <details>
+            <summary data-i18n-zh="要花钱吗？" data-i18n-en="Does it cost anything?">要花钱吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="应用本体不收费，MIT 协议开源。要自己准备一个 DeepSeek 的 Key——每次分析只花几百个 token，日常开会用很便宜。"
+               data-i18n-en="The app itself costs nothing and is MIT-licensed. You bring a DeepSeek key of your own — a few hundred tokens per pass, which makes everyday meetings cheap.">应用本体不收费，MIT 协议开源。要自己准备一个 DeepSeek 的 Key——每次分析只花几百个 token，日常开会用很便宜。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="会上说的话会被上传吗？" data-i18n-en="Does what's said in the meeting get uploaded?">会上说的话会被上传吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="声音不会。转文字在这台 Mac 上完成；离开本机的只有最近约 1200 字的文字，发给你自己填的 DeepSeek 接口用来整理待办，字数可以调。待办和文字都不写进硬盘，退出程序就清空。"
+               data-i18n-en="Not the audio. Transcription happens on this Mac; the only thing that leaves is the last ~1200 characters of text, sent to the DeepSeek endpoint you configured, to be turned into to-dos (the length is adjustable). Neither the to-dos nor the text are written to disk — quitting the app clears everything.">声音不会。转文字在这台 Mac 上完成；离开本机的只有最近约 1200 字的文字，发给你自己填的 DeepSeek 接口用来整理待办，字数可以调。待办和文字都不写进硬盘，退出程序就清空。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="跟云端会议助手有什么不一样？" data-i18n-en="How is this different from a cloud meeting assistant?">跟云端会议助手有什么不一样？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不用上传录音、不用注册、不用买会员，没有时长和次数限制，也不用在开会前请一屋子人同意——声音根本没离开你的电脑。代价是整理待办要自备一个 DeepSeek 的 Key。"
+               data-i18n-en="No uploading recordings, no account, no membership, no cap on length or number of meetings, and no asking a room full of people for consent before you start — the audio never leaves your computer. The trade-off: you bring your own DeepSeek key.">不用上传录音、不用注册、不用买会员，没有时长和次数限制，也不用在开会前请一屋子人同意——声音根本没离开你的电脑。代价是整理待办要自备一个 DeepSeek 的 Key。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="已经记下的待办还能改吗？" data-i18n-en="Can a to-do that's already on the list be changed?">已经记下的待办还能改吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="能。照着屏幕念编号就行：「待办 3 的地点改成会议室 B」——改动会落到同一条上，并亮一下橙色告诉你改了哪儿。"
+               data-i18n-en="Yes. Read the number off the screen — &ldquo;to-do 3, change the place to Meeting Room B&rdquo;. The change lands on that same row and flashes orange to show you what moved.">能。照着屏幕念编号就行：「待办 3 的地点改成会议室 B」——改动会落到同一条上，并亮一下橙色告诉你改了哪儿。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="电脑外放的时候会不会听重？" data-i18n-en="What if the speakers are on — does it hear things twice?">电脑外放的时候会不会听重？</summary>
+            <p data-i18n-zh="不戴耳机时，喇叭放出来的声音会被麦克风再听一遍，于是对方的话会出现一份重复的；两份太像时，后到的那份会被丢掉。戴上耳机就从根上没有这个问题——所以推荐戴耳机开会。"
+               data-i18n-en="Without headphones, your speakers are picked up by the microphone a second time, so the other side's words show up twice; when the two are too alike, the later one is dropped. Headphones remove the problem at the source — which is what we'd recommend for meetings.">不戴耳机时，喇叭放出来的声音会被麦克风再听一遍，于是对方的话会出现一份重复的；两份太像时，后到的那份会被丢掉。戴上耳机就从根上没有这个问题——所以推荐戴耳机开会。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="支持英文或别的语言吗？" data-i18n-en="Does it work in English, or other languages?">支持英文或别的语言吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="支持。设置里换「识别语言」就行，第一次用新语言会先准备一下对应的识别能力。"
+               data-i18n-en="It does. Switch the recognition language in settings — the first run in a new language takes a moment to get ready for it.">支持。设置里换「识别语言」就行，第一次用新语言会先准备一下对应的识别能力。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="为什么要求 macOS 26 或更新？" data-i18n-en="Why does it need macOS 26 or later?">为什么要求 macOS 26 或更新？</summary>
+            <p class="faq-a"
+               data-i18n-zh="用的是新一代的语音识别能力：认得更准、出字更快，代价是系统版本要求高。"
+               data-i18n-en="It uses the newer generation of speech recognition: more accurate and faster to produce text, at the cost of a higher system requirement.">用的是新一代的语音识别能力：认得更准、出字更快，代价是系统版本要求高。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="待办关掉还在吗？" data-i18n-en="Are the to-dos still there after I quit?">待办关掉还在吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不在。待办和听到的文字只在内存里，退出程序就清空——这是故意的：会议内容不留在电脑里。想留一份，点一条复制走就行。"
+               data-i18n-en="No. To-dos and the transcribed text live in memory only, and quitting clears them — deliberately, so meeting content doesn't stay on the machine. Want to keep something? Click the row to copy it.">不在。待办和听到的文字只在内存里，退出程序就清空——这是故意的：会议内容不留在电脑里。想留一份，点一条复制走就行。</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="cta-band">
+          <h2 data-i18n-zh="下一场会，让待办自己排好" data-i18n-en="In your next meeting, let the list build itself">下一场会，让待办自己排好</h2>
+          <p data-i18n-zh="装上、填上 Key、点一下开始监听。散会的时候，清单已经在那儿了。"
+             data-i18n-en="Install it, add your key, hit start. By the time the meeting ends, the list is already there.">装上、填上 Key、点一下开始监听。散会的时候，清单已经在那儿了。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="https://github.com/smarty-kiki/ear_shot/releases" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="6 9 12 15 18 9"/><path d="M4 21h16"/></svg>
+              <span data-i18n-zh="下载" data-i18n-en="Download">下载</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/smarty-kiki/ear_shot" target="_blank" rel="noopener"
+               data-i18n-zh="查看源码" data-i18n-en="View source">查看源码</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n-zh="© 2026 耳录 EarShot · 基于 MIT 协议开源" data-i18n-en="© 2026 EarShot · Open source under the MIT license">© 2026 耳录 EarShot · 基于 MIT 协议开源</span>
+      <span>
+        <a href="../../" data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/smarty-kiki/ear_shot" target="_blank" rel="noopener">GitHub</a>
+      </span>
+    </div>
+  </footer>
+
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/hero-gl.js"></script>
+</body>
+</html>

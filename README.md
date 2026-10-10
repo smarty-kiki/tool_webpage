@@ -23,12 +23,18 @@ tool_webpage/
 │   │   │   └── index.html            # 纽斯（新闻知识库）介绍页（Agent Skill，引导装进智能体）
 │   │   ├── staffdeck/
 │   │   │   └── index.html            # StaffDeck 企业级升级版介绍页（基于 OpenBMB 的 StaffDeck，四平台安装包入口）
-│   │   └── kiki/
-│   │       └── index.html            # Kiki 介绍页（macOS 菜单栏中文助手，下载引导）
+│   │   ├── kiki/
+│   │   │   └── index.html            # Kiki 介绍页（macOS 菜单栏中文助手，下载引导）
+│   │   ├── laya-server/
+│   │   │   └── index.html            # laya-server 介绍页（本机 Laya 推理服务，App / 命令行，下载引导）
+│   │   ├── scheduler/
+│   │   │   └── index.html            # Scheduler 介绍页（macOS 菜单栏日程助手，下载引导）
+│   │   └── earshot/
+│   │       └── index.html            # 耳录 EarShot 介绍页（macOS 会议待办助手，下载引导）
 │   └── assets/
 │       ├── css/style.css             # 全站共享设计系统（浅色暖调；产品 mock 保持深色）
 │       ├── js/i18n.js                # 中英双语切换
-│       ├── js/hero-gl.js             # 各页 hero 的 WebGL2 动态背景（flow/queue/scan/net/wire/sop/cue 七种模式，无 WebGL 自动回退 CSS 光斑）
+│       ├── js/hero-gl.js             # 各页 hero 的 WebGL2 动态背景（flow/queue/scan/net/wire/sop/cue/local/slot/listen 十种模式，无 WebGL 自动回退 CSS 光斑）
 │       ├── js/hero-3d.js             # 掼蛋 / 梦游两页的 three.js 3D 场景（动态 import，失败即退 CSS）
 │       ├── js/home.js                # 首页专属：卡片聚光/浮现
 │       ├── vendor/                   # three.js 固定版本（仅 3D 页面懒加载）
