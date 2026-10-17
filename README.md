@@ -39,7 +39,7 @@ tool_webpage/
 │       ├── js/home.js                # 首页专属：卡片聚光/浮现
 │       ├── vendor/                   # three.js 固定版本（仅 3D 页面懒加载）
 │       ├── img/                      # 各工具图标、favicon
-│       └── video/                    # 宣传片（kiki-mv.mp4 = Kiki 的 71 秒品牌片，配 kiki-mv-poster.jpg 封面）
+│       └── video/                    # 宣传片（kiki-mv.mp4 = Kiki 的 71 秒品牌片，配 kiki-mv-poster.jpg 封面；页内引用带 ?v= 缓存戳，换片时记得同步改）
 └── project/
     ├── tool_webpage.Caddyfile        # Caddy 静态托管配置（product.yao-yang.cn）
     └── after_push.sh                 # 部署脚本：软链 Caddyfile 并 reload
