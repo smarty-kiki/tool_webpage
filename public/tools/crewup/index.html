@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n-zh="集合出发吧 — 群里说一声，几点出门、在哪儿集合都算好" data-i18n-en="CrewUp — one trip card, one timetable: when to leave, where to meet">集合出发吧 — 群里说一声，几点出门、在哪儿集合都算好</title>
+  <meta name="description" data-i18n-zh="微信小程序。建个行程丢进群，大家各自填从哪儿出发，集合点、路线顺序、每个人几点出门，自动排成一张时间表。到点微信提醒，不用下载，扫小程序码就能用。" data-i18n-en="A WeChat mini program. Start a trip, drop the card in the group, and everyone adds where they're starting from. The meeting point, the route, and each person's departure time come back as one timetable. A WeChat reminder when it's time — no download, just scan the mini program code.">
+  <link rel="icon" type="image/png" href="../../assets/img/crewup.png">
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <style>
+    /* ===== 集合出发吧 页专属：手机真机 + 出发提醒 + 扫码开团 ===== */
+
+    /* -- Hero 右侧：一张行程时间表，叠两枚现场小卡 -- */
+    .cw-visual {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 600px;
+    }
+    .cw-visual::before {
+      content: "";
+      position: absolute;
+      inset: 8% 0 6%;
+      border-radius: 50%;
+      background: radial-gradient(closest-side, rgba(59, 110, 246, 0.26), transparent 72%);
+      filter: blur(10px);
+      pointer-events: none;
+    }
+    .cw-phone {
+      position: relative;
+      z-index: 1;
+      width: min(300px, 76%);
+      border-radius: 42px;
+      box-shadow: 0 38px 96px rgba(22, 38, 80, 0.30), 0 4px 18px rgba(22, 38, 80, 0.12);
+      transform: rotate(-1.2deg);
+    }
+    .cw-phone img { width: 100%; height: auto; border-radius: 42px; }
+
+    .cw-float {
+      position: absolute;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.97);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(28, 40, 72, 0.10);
+      box-shadow: 0 24px 60px rgba(24, 40, 80, 0.20), 0 2px 8px rgba(24, 40, 80, 0.06);
+    }
+    .cw-remind {
+      left: -18px;
+      bottom: 78px;
+      width: 252px;
+      padding: 13px 15px 12px;
+      border-radius: 16px;
+      color: #171a22;
+    }
+    .cw-remind-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+    .cw-remind-head img { width: 21px; height: 21px; border-radius: 6px; flex: none; }
+    .cw-remind-app { font-size: 12px; font-weight: 800; color: #3a4257; }
+    .cw-remind-when { margin-left: auto; font-size: 11px; color: #9aa2b4; }
+    .cw-remind-title { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
+    .cw-remind-line { font-size: 12.5px; color: #5b6376; line-height: 1.6; }
+    .cw-remind-line strong { color: #3B6EF6; font-weight: 800; }
+    .cw-remind-tag {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #12a150;
+      background: #e6f7ee;
+      border-radius: 999px;
+      padding: 2px 8px;
+    }
+
+    .cw-count {
+      right: -16px;
+      top: 58px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 11px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #2a3a55;
+      white-space: nowrap;
+    }
+    .cw-count i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex: none;
+      background: #12a150;
+      box-shadow: 0 0 0 4px rgba(18, 161, 80, 0.14);
+    }
+
+    /* -- 五步流程 -- */
+    .cw-flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+    }
+    .cw-flow-step {
+      position: relative;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 18px;
+    }
+    .cw-flow-step .n {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent-ink);
+      background: var(--accent-soft);
+      margin-bottom: 13px;
+    }
+    .cw-flow-step h3 { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+    .cw-flow-step p { font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+
+    /* -- 界面一览：六张真机画面 -- */
+    .cw-shots {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .cw-shot {
+      padding: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: 0 8px 28px rgba(70, 53, 25, 0.06);
+    }
+    .cw-shot img {
+      width: 100%;
+      height: auto;
+      border-radius: 14px;
+      border: 1px solid rgba(28, 40, 72, 0.10);
+      background: #f4f6fb;
+    }
+    .cw-shot figcaption {
+      margin-top: 13px;
+      font-size: 13.5px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* -- 两种开团方式 -- */
+    .cw-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .cw-mode {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 30px;
+    }
+    .cw-mode-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .cw-mode-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-ink);
+      background: var(--accent-soft);
+    }
+    .cw-mode-icon svg { width: 22px; height: 22px; }
+    .cw-mode h3 { font-size: 19px; font-weight: 800; }
+    .cw-mode .tag { display: inline-block; margin-bottom: 14px; }
+    .cw-mode > p { color: var(--muted); font-size: 14.5px; margin-bottom: 18px; }
+    .cw-list { display: flex; flex-direction: column; gap: 8px; }
+    .cw-list li {
+      position: relative;
+      padding-left: 23px;
+      font-size: 14px;
+      color: #3f372b;
+    }
+    .cw-list li::before {
+      content: "";
+      position: absolute;
+      left: 2px;
+      top: 5px;
+      width: 12px;
+      height: 7px;
+      border-left: 2px solid var(--accent-ink);
+      border-bottom: 2px solid var(--accent-ink);
+      transform: rotate(-45deg);
+    }
+
+    /* -- 分享与隐私 -- */
+    .cw-share { display: grid; grid-template-columns: 0.92fr 1.08fr; gap: 38px; align-items: center; }
+    .cw-share-fig { margin: 0; }
+    .cw-share-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 20px;
+      border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+      box-shadow: 0 26px 64px rgba(32, 50, 96, 0.18);
+      transform: rotate(-1.3deg);
+    }
+    .cw-share-card img { width: 100%; height: auto; }
+    .cw-share-veil {
+      position: absolute;
+      inset: auto 0 0 0;
+      padding: 48px 20px 18px;
+      background: linear-gradient(transparent, rgba(14, 21, 38, 0.86) 42%);
+      color: #fff;
+    }
+    .cw-share-veil strong { display: block; font-size: 16px; font-weight: 800; margin-bottom: 2px; }
+    .cw-share-veil span { font-size: 12.5px; color: rgba(255, 255, 255, 0.78); }
+    .cw-share-fig figcaption { margin-top: 14px; font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+
+    .cw-priv { display: flex; flex-direction: column; gap: 14px; }
+    .cw-priv-item {
+      display: flex;
+      gap: 15px;
+      padding: 20px 22px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 15px;
+    }
+    .cw-priv-ico {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-ink);
+      background: var(--accent-soft);
+    }
+    .cw-priv-ico svg { width: 19px; height: 19px; }
+    .cw-priv-item h3 { font-size: 15.5px; font-weight: 800; margin-bottom: 4px; }
+    .cw-priv-item p { font-size: 14px; color: var(--muted); }
+
+    /* -- 开始：扫码卡 -- */
+    .cw-start { display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 44px; align-items: center; }
+    .cw-start h2 {
+      font-size: clamp(26px, 3.4vw, 36px);
+      font-weight: 800;
+      letter-spacing: -0.015em;
+      line-height: 1.25;
+      margin-bottom: 14px;
+    }
+    .cw-start-sub { color: var(--muted); font-size: 16px; }
+    .cw-start-list { display: flex; flex-direction: column; gap: 11px; margin: 24px 0 26px; }
+    .cw-start-list li { display: flex; align-items: flex-start; gap: 11px; font-size: 14.5px; color: #3f372b; }
+    .cw-start-list .n {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11.5px;
+      font-weight: 800;
+      color: var(--accent-ink);
+      background: var(--accent-soft);
+      margin-top: 1px;
+    }
+    .cw-scan {
+      position: relative;
+      width: min(348px, 100%);
+      justify-self: center;
+      padding: 24px 24px 22px;
+      text-align: center;
+      background: var(--card);
+      border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+      border-radius: 26px;
+      box-shadow: 0 30px 70px rgba(32, 50, 96, 0.16), 0 2px 10px rgba(32, 50, 96, 0.05);
+      overflow: hidden;
+    }
+    .cw-scan::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+    .cw-scan-app { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 18px; }
+    .cw-scan-app img { width: 40px; height: 40px; border-radius: 11px; }
+    .cw-scan-app strong { font-size: 15.5px; font-weight: 800; text-align: left; }
+    .cw-scan-app small { display: block; font-size: 11.5px; color: var(--muted); font-weight: 500; }
+    .cw-qr {
+      position: relative;
+      width: 248px;
+      height: 248px;
+      margin: 0 auto 18px;
+      padding: 7px;
+      border-radius: 22px;
+      background: #fff;
+      border: 1px solid rgba(28, 40, 72, 0.08);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 18px 40px color-mix(in srgb, var(--accent) 20%, transparent), 0 2px 8px rgba(32, 50, 96, 0.06);
+    }
+    .cw-qr::before {
+      content: "";
+      position: absolute;
+      inset: -7px;
+      border-radius: 28px;
+      border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
+      pointer-events: none;
+      animation: cw-breathe 4.8s ease-in-out infinite;
+    }
+    @keyframes cw-breathe {
+      0%, 100% { opacity: 0.35; transform: scale(0.99); }
+      50% { opacity: 0.85; transform: scale(1.018); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .cw-qr::before { animation: none; opacity: 0.55; }
+    }
+    .cw-qr img { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: 16px; }
+    [hidden] { display: none !important; }
+    .cw-qr-fallback { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--accent-ink); }
+    .cw-qr-fallback svg { width: 58px; height: 58px; opacity: 0.9; }
+    .cw-qr-fallback strong { font-size: 14px; font-weight: 800; color: var(--text); }
+    .cw-qr-fallback span { font-size: 12px; color: var(--muted); }
+    .cw-scan-tip { font-size: 14px; font-weight: 800; color: var(--text); }
+    .cw-scan-sub { margin-top: 3px; font-size: 12px; color: var(--muted); }
+
+    /* -- 小屏 -- */
+    @media (max-width: 920px) {
+      .cw-visual { min-height: 540px; margin-top: 8px; }
+      .cw-flow { grid-template-columns: repeat(2, 1fr); }
+      .cw-shots { grid-template-columns: repeat(2, 1fr); }
+      .cw-share { grid-template-columns: 1fr; gap: 28px; }
+      .cw-start { grid-template-columns: 1fr; gap: 32px; }
+      .cw-start .cw-scan { justify-self: start; }
+    }
+    @media (max-width: 640px) {
+      .cw-modes { grid-template-columns: 1fr; }
+      .cw-shots { grid-template-columns: 1fr; }
+      .cw-remind { left: 0; bottom: 30px; width: 232px; }
+      .cw-count { right: 0; top: 24px; }
+      .cw-visual { min-height: 600px; }
+      .cw-start .cw-scan { justify-self: center; }
+    }
+    @media (max-width: 560px) {
+      .cw-flow { grid-template-columns: 1fr; }
+      .cw-visual { min-height: 570px; }
+      .cw-phone { width: min(280px, 82%); }
+      .cw-float { transform: scale(0.94); }
+      .cw-remind { transform-origin: left bottom; }
+      .cw-count { transform-origin: right top; }
+      .cw-mode { padding: 24px 22px; }
+      .cw-priv-item { padding: 18px; }
+    }
+  </style>
+</head>
+<body style="--accent: #3B6EF6; --btn-text: #ffffff;">
+
+  <header class="site-header">
+    <div class="container nav">
+      <a class="back-link" href="../../">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        <span data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</span>
+      </a>
+      <div class="nav-right">
+        <a class="nav-link hide-sm" href="#how" data-i18n-zh="怎么用" data-i18n-en="How it works">怎么用</a>
+        <a class="btn btn-primary btn-sm" href="#start" data-i18n-zh="扫码开团" data-i18n-en="Scan to start">扫码开团</a>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ Hero ============ -->
+    <section class="hero">
+      <canvas id="hero-gl" aria-hidden="true"
+              data-mode="net" data-colors="#3b6ef6,#7aa2ff,#ff8a5b"></canvas>
+      <div class="container hero-inner">
+
+        <div class="hero-copy">
+          <div class="hero-app">
+            <img src="../../assets/img/crewup.png" alt="集合出发吧">
+            <div>
+              <div class="hero-app-name" data-i18n-zh="集合出发吧" data-i18n-en="CrewUp">集合出发吧</div>
+              <div class="hero-app-cat" data-i18n-zh="微信群里的出发助手 · 微信小程序" data-i18n-en="The departure planner for WeChat groups · Mini program">微信群里的出发助手 · 微信小程序</div>
+            </div>
+          </div>
+          <h1 class="hero-title"
+              data-i18n-zh="群里喊一声，<br><em>几点出门、<br>在哪儿集合都算好</em>。"
+              data-i18n-en="One trip card —<br><em>when to leave,<br>where to meet,<br>all worked out</em>.">群里喊一声，<br><em>几点出门、<br>在哪儿集合都算好</em>。</h1>
+          <p class="hero-sub"
+             data-i18n-zh="建个行程丢进群，大家各自填上从哪儿出发。集合点、路线顺序、每个人几点出门，自动排成一张时间表；到点微信提醒，谁也不用挨个催。不用下载，扫小程序码就用。"
+             data-i18n-en="Start a trip and drop the card in the group; everyone adds where they're starting from. The meeting point, the order of stops, and each person's departure time come back as one timetable — and a WeChat reminder goes out when it's time, so nobody has to chase anyone. No download: scan the mini program code and go.">建个行程丢进群，大家各自填上从哪儿出发。集合点、路线顺序、每个人几点出门，自动排成一张时间表；到点微信提醒，谁也不用挨个催。不用下载，扫小程序码就用。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="#start">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3"/><path d="M16 4h3a1 1 0 0 1 1 1v3"/><path d="M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M4 12h16"/></svg>
+              <span data-i18n-zh="扫码开团" data-i18n-en="Scan to start">扫码开团</span>
+            </a>
+            <a class="btn btn-ghost" href="#how"
+               data-i18n-zh="看看怎么用" data-i18n-en="See how it works">看看怎么用</a>
+          </div>
+          <div class="facts">
+            <span class="fact" data-i18n-zh="微信小程序" data-i18n-en="WeChat mini program">微信小程序</span>
+            <span class="fact" data-i18n-zh="不用下载" data-i18n-en="No download">不用下载</span>
+            <span class="fact" data-i18n-zh="不用另外注册" data-i18n-en="No extra account">不用另外注册</span>
+            <span class="fact" data-i18n-zh="最多 30 人" data-i18n-en="Up to 30 people">最多 30 人</span>
+          </div>
+        </div>
+
+        <!-- 真机时间表 + 两枚现场小卡（纯装饰） -->
+        <div class="cw-visual" aria-hidden="true">
+          <figure class="cw-phone">
+            <img src="../../assets/img/crewup-shots/plan-timeline.png" width="750" height="1624" fetchpriority="high" alt="">
+          </figure>
+          <div class="cw-float cw-remind">
+            <div class="cw-remind-head">
+              <img src="../../assets/img/crewup.png" alt="">
+              <span class="cw-remind-app" data-i18n-zh="集合出发吧 · 出发提醒" data-i18n-en="CrewUp · Departure reminder">集合出发吧 · 出发提醒</span>
+              <span class="cw-remind-when" data-i18n-zh="刚刚" data-i18n-en="now">刚刚</span>
+            </div>
+            <p class="cw-remind-title" data-i18n-zh="该出门了" data-i18n-en="Time to head out">该出门了</p>
+            <p class="cw-remind-line" data-i18n-zh="<strong>08:00</strong> 从望京SOHO出发，去西山森林公园集合 · 地铁约 90 分钟" data-i18n-en="Leave at <strong>08:00</strong> for Xishan Forest Park · about 90 min by metro"><strong>08:00</strong> 从望京SOHO出发，去西山森林公园集合 · 地铁约 90 分钟</p>
+            <span class="cw-remind-tag" data-i18n-zh="按你的出门时间提醒" data-i18n-en="At your own departure time">按你的出门时间提醒</span>
+          </div>
+          <div class="cw-float cw-count">
+            <i></i>
+            <span data-i18n-zh="4 / 4 已填出发地" data-i18n-en="4 of 4 origins added">4 / 4 已填出发地</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 痛点 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="为什么做它" data-i18n-en="WHY">为什么做它</span>
+          <h2 class="section-title"
+              data-i18n-zh="一次出门，半个晚上都在群里对齐" data-i18n-en="One outing, half the evening spent aligning in the group chat">一次出门，半个晚上都在群里对齐</h2>
+          <p class="section-sub"
+             data-i18n-zh="组织者不想当调度员，可只要没人收齐出发地、算清时间，这件事最后总会落到一个人头上。"
+             data-i18n-en="Nobody wants to be the dispatcher — but if the origins aren't collected and the times aren't worked out, it always lands on one person.">组织者不想当调度员，可只要没人收齐出发地、算清时间，这件事最后总会落到一个人头上。</p>
+        </div>
+
+        <div class="pain-grid">
+          <div class="pain-card">
+            <h3 data-i18n-zh="接龙越刷越长，还是拼不出地图" data-i18n-en="The sign-up thread grows, the map doesn't">接龙越刷越长，还是拼不出地图</h3>
+            <p data-i18n-zh="谁从哪走、谁能顺路、谁坐地铁，消息一条条刷过去，最后还是得自己打开地图，一个个点开看。"
+               data-i18n-en="Who's coming from where, who can share a ride, who's on the metro — the messages scroll past, and you still end up opening a map and checking each one by hand.">谁从哪走、谁能顺路、谁坐地铁，消息一条条刷过去，最后还是得自己打开地图，一个个点开看。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="集合点靠拍脑袋，总有人多绕路" data-i18n-en="The meeting point is a guess, and someone always detours">集合点靠拍脑袋，总有人多绕路</h3>
+            <p data-i18n-zh="定在谁家附近都像偏心；换一个地方，也没人说得清到底差多少。最后往往是住得远的人默默多走一截。"
+               data-i18n-en="Any spot near someone's home feels like favouritism; move it, and nobody can say how much better or worse it gets. Usually whoever lives furthest just quietly travels further.">定在谁家附近都像偏心；换一个地方，也没人说得清到底差多少。最后往往是住得远的人默默多走一截。</p>
+          </div>
+          <div class="pain-card">
+            <h3 data-i18n-zh="集合时间说了八遍，还是有人迟到" data-i18n-en="&ldquo;Meet at nine&rdquo; said eight times — someone's still late">集合时间说了八遍，还是有人迟到</h3>
+            <p data-i18n-zh="住得远的人按同一个时间出门，路上堵不堵、换几次乘，全靠自己估。出门前再问一遍，已经来不及了。"
+               data-i18n-en="Everyone leaves at the same time, regardless of how far they're coming from — and how long the trip really takes is a guess. Asking again on the way out doesn't help by then.">住得远的人按同一个时间出门，路上堵不堵、换几次乘，全靠自己估。出门前再问一遍，已经来不及了。</p>
+          </div>
+        </div>
+
+        <p class="pain-transition"
+           data-i18n-zh="集合出发吧把这几件事接了过去：<em>收出发地、挑集合点、排路线、算时间</em>，一次做完。"
+           data-i18n-en="CrewUp takes those jobs off your hands: <em>collect the origins, pick the meeting point, order the route, work out the times</em> — in one go.">集合出发吧把这几件事接了过去：<em>收出发地、挑集合点、排路线、算时间</em>，一次做完。</p>
+      </div>
+    </section>
+
+    <!-- ============ 五步 ============ -->
+    <section class="section" id="how">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="怎么用" data-i18n-en="HOW IT WORKS">怎么用</span>
+          <h2 class="section-title"
+              data-i18n-zh="从群里一句「去不去」，到一张出发时间表" data-i18n-en="From &ldquo;anyone up for it?&rdquo; to a departure timetable">从群里一句「去不去」，到一张出发时间表</h2>
+          <p class="section-sub"
+             data-i18n-zh="建行程只要几十秒；剩下的活，它会跟着每个人填的出发地自己算。"
+             data-i18n-en="Setting up the trip takes seconds. The rest follows from the origins everyone fills in.">建行程只要几十秒；剩下的活，它会跟着每个人填的出发地自己算。</p>
+        </div>
+
+        <div class="cw-flow">
+          <div class="cw-flow-step">
+            <div class="n">1</div>
+            <h3 data-i18n-zh="建个行程" data-i18n-en="Start a trip">建个行程</h3>
+            <p data-i18n-zh="起个名字，选共创还是参与，行程就建好了。日期和集合时间可以之后再定。"
+               data-i18n-en="Give it a name and choose Co-create or Sign-up. You can set the date and meeting time later.">起个名字，选共创还是参与，行程就建好了。日期和集合时间可以之后再定。</p>
+          </div>
+          <div class="cw-flow-step">
+            <div class="n">2</div>
+            <h3 data-i18n-zh="发到微信群" data-i18n-en="Drop it in the group">发到微信群</h3>
+            <p data-i18n-zh="分享卡片点开就是行程：集合点、地点、人数，加入之前先看明白。"
+               data-i18n-en="The share card opens straight onto the trip — meeting point, stops, headcount — all clear before anyone joins.">分享卡片点开就是行程：集合点、地点、人数，加入之前先看明白。</p>
+          </div>
+          <div class="cw-flow-step">
+            <div class="n">3</div>
+            <h3 data-i18n-zh="各自填出发地" data-i18n-en="Everyone adds an origin">各自填出发地</h3>
+            <p data-i18n-zh="每个人只填自己的。不公开也没关系，一样能算进路线和集合点。"
+               data-i18n-en="Each person adds their own — and can keep it private. It still counts toward the route and meeting point.">每个人只填自己的。不公开也没关系，一样能算进路线和集合点。</p>
+          </div>
+          <div class="cw-flow-step">
+            <div class="n">4</div>
+            <h3 data-i18n-zh="自动排线" data-i18n-en="The route builds itself">自动排线</h3>
+            <p data-i18n-zh="集合点、地点顺序、每一段路、每个人的出门时间，一起算好。"
+               data-i18n-en="Meeting point, stop order, every leg, and each person's departure time — all worked out together.">集合点、地点顺序、每一段路、每个人的出门时间，一起算好。</p>
+          </div>
+          <div class="cw-flow-step">
+            <div class="n">5</div>
+            <h3 data-i18n-zh="到点提醒" data-i18n-en="A reminder on time">到点提醒</h3>
+            <p data-i18n-zh="按你自己的出门时间，微信推一条服务通知，不用别人在群里催。"
+               data-i18n-en="A WeChat service notification arrives at your own departure time — no chasing in the group.">按你自己的出门时间，微信推一条服务通知，不用别人在群里催。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 功能 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="核心能力" data-i18n-en="FEATURES">核心能力</span>
+          <h2 class="section-title"
+              data-i18n-zh="该算的它都算好，该知道的你都看得到" data-i18n-en="The maths is done for you — and you can see all of it">该算的它都算好，该知道的你都看得到</h2>
+          <p class="section-sub"
+             data-i18n-zh="集合点为什么选在这儿、每段路要多久、你该几点出门——不是一句「大概」，而是摆在明面上的数。"
+             data-i18n-en="Why this meeting point, how long each leg takes, when you should leave — not a vague &ldquo;around nine&rdquo;, but numbers you can look at.">集合点为什么选在这儿、每段路要多久、你该几点出门——不是一句「大概」，而是摆在明面上的数。</p>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+            </div>
+            <h3 data-i18n-zh="集合点算出来，不是拍出来" data-i18n-en="A meeting point that's calculated, not guessed">集合点算出来，不是拍出来</h3>
+            <p data-i18n-zh="把所有人的出发地放在一起比，挑一个总里程和总时长更合适的地方，还会把附近的停车场一起给你。为什么是这儿，页面上写得明明白白。"
+               data-i18n-en="All the origins are weighed together to find the spot that keeps the total distance and time down — with nearby car parks included. The page shows you exactly why it won.">把所有人的出发地放在一起比，挑一个总里程和总时长更合适的地方，还会把附近的停车场一起给你。为什么是这儿，页面上写得明明白白。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4v16"/><circle cx="5" cy="8" r="1.7"/><circle cx="5" cy="16" r="1.7"/><path d="M10 8h9"/><path d="M10 16h6"/></svg>
+            </div>
+            <h3 data-i18n-zh="一张时间表，所有人看同一份" data-i18n-en="One timetable for the whole group">一张时间表，所有人看同一份</h3>
+            <p data-i18n-zh="几点出门、几点到集合点、每一站待多久、下一段怎么走，全在一条时间线上。谁看手机，看到的都是同一版。"
+               data-i18n-en="When to leave, when to reach the meeting point, how long each stop lasts, how the next leg goes — one timeline, the same for everyone who opens it.">几点出门、几点到集合点、每一站待多久、下一段怎么走，全在一条时间线上。谁看手机，看到的都是同一版。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3 1.8"/></svg>
+            </div>
+            <h3 data-i18n-zh="每个人都有自己的出门时间" data-i18n-en="Everyone gets their own departure time">每个人都有自己的出门时间</h3>
+            <p data-i18n-zh="住得远的早一点走，离得近的不用陪着等。地铁、公交、骑行、步行、打车、自驾，各自按真实耗时算，换乘和进出站也留了出来。"
+               data-i18n-en="Further out leaves earlier; nearby doesn't wait around. Metro, bus, bike, walk, taxi, or drive — each timed realistically, transfers and station walks included.">住得远的早一点走，离得近的不用陪着等。地铁、公交、骑行、步行、打车、自驾，各自按真实耗时算，换乘和进出站也留了出来。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><polyline points="20 4 20 11 13 11"/></svg>
+            </div>
+            <h3 data-i18n-zh="谁改了出发地，整张表跟着重排" data-i18n-en="One change, the whole plan updates">谁改了出发地，整张表跟着重排</h3>
+            <p data-i18n-zh="有人换了地方、加了地点，或者把集合时间提前了，路线和时间表自动更新。组织者不用拿计算器再算一遍。"
+               data-i18n-en="Someone moves, a stop gets added, or the meeting time shifts — the route and timetable update themselves. No recounting by the organiser.">有人换了地方、加了地点，或者把集合时间提前了，路线和时间表自动更新。组织者不用拿计算器再算一遍。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <h3 data-i18n-zh="共创还是参与，开团时选" data-i18n-en="Co-create or sign up — your call">共创还是参与，开团时选</h3>
+            <p data-i18n-zh="共创：谁都能补地点，各改各的信息；参与：发起人一个人安排。两种方式，加入、填出发地和收提醒都一样顺。"
+               data-i18n-en="Co-create: anyone can add stops and edit their own details. Sign-up: the organiser arranges it all. Joining, filling in an origin, and reminders work the same either way.">共创：谁都能补地点，各改各的信息；参与：发起人一个人安排。两种方式，加入、填出发地和收提醒都一样顺。</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+            </div>
+            <h3 data-i18n-zh="到点微信提醒，不用人催" data-i18n-en="A WeChat nudge, right on time">到点微信提醒，不用人催</h3>
+            <p data-i18n-zh="点一下订阅，到了你自己的出门时间，微信推一条服务通知：几点出发、去哪儿集合、全程大约多久。"
+               data-i18n-en="Tap once to allow it, and at your own departure time a WeChat service notification arrives: when to leave, where to meet, roughly how long the trip takes.">点一下订阅，到了你自己的出门时间，微信推一条服务通知：几点出发、去哪儿集合、全程大约多久。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 界面一览 ============ -->
+    <section class="section" id="gallery">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="界面一览" data-i18n-en="A LOOK INSIDE">界面一览</span>
+          <h2 class="section-title"
+              data-i18n-zh="打开小程序，你会看到的" data-i18n-en="What you'll see when you open it">打开小程序，你会看到的</h2>
+          <p class="section-sub"
+             data-i18n-zh="从建好行程、看清、加入，到排好线、出发前那条提醒——六个真实画面。"
+             data-i18n-en="From starting a trip and joining it, to the finished route and the reminder before you leave — six real screens.">从建好行程、看清、加入，到排好线、出发前那条提醒——六个真实画面。</p>
+        </div>
+
+        <div class="cw-shots">
+          <figure class="cw-shot">
+            <img src="../../assets/img/crewup-shots/home.png" width="750" height="1624" loading="lazy" alt="">
+            <figcaption data-i18n-zh="打开就是你的行程：正在进行、已经结束，下一次什么时候出发，一眼看到。"
+                        data-i18n-en="Your trips on one screen — what's coming up, what's done, and when the next one leaves.">打开就是你的行程：正在进行、已经结束，下一次什么时候出发，一眼看到。</figcaption>
+          </figure>
+          <figure class="cw-shot">
+            <img src="../../assets/img/crewup-shots/detail.png" width="750" height="1624" loading="lazy" alt="">
+            <figcaption data-i18n-zh="行程详情：集合点、为什么选它、总里程和每一站，加入之前就能看明白。"
+                        data-i18n-en="Trip details before you join: the meeting point, why it was chosen, total distance, and every stop.">行程详情：集合点、为什么选它、总里程和每一站，加入之前就能看明白。</figcaption>
+          </figure>
+          <figure class="cw-shot">
+            <img src="../../assets/img/crewup-shots/join.png" width="750" height="1624" loading="lazy" alt="">
+            <figcaption data-i18n-zh="加入只要两样：昵称和出发地。出发地要不要公开，你自己定。"
+                        data-i18n-en="Joining takes two things: a nickname and an origin. Whether that origin is public is up to you.">加入只要两样：昵称和出发地。出发地要不要公开，你自己定。</figcaption>
+          </figure>
+          <figure class="cw-shot">
+            <img src="../../assets/img/crewup-shots/plan.png" width="750" height="1624" loading="lazy" alt="">
+            <figcaption data-i18n-zh="排好之后：集合点、总里程、全程时长和每一站，都在同一页。"
+                        data-i18n-en="Once it's planned: meeting point, total distance, total time, and every stop — all on one page.">排好之后：集合点、总里程、全程时长和每一站，都在同一页。</figcaption>
+          </figure>
+          <figure class="cw-shot">
+            <img src="../../assets/img/crewup-shots/members.png" width="750" height="1624" loading="lazy" alt="">
+            <figcaption data-i18n-zh="成员页：谁填了、谁还没填、各自几点出门；没公开的出发地，别人看不到。"
+                        data-i18n-en="Members: who's filled theirs in, who hasn't, and when each person leaves — private origins stay private.">成员页：谁填了、谁还没填、各自几点出门；没公开的出发地，别人看不到。</figcaption>
+          </figure>
+          <figure class="cw-shot">
+            <img src="../../assets/img/crewup-shots/remind.png" width="750" height="1624" loading="lazy" alt="">
+            <figcaption data-i18n-zh="出发前，微信推来一条服务通知：几点出发、去哪儿集合、全程大约多久。"
+                        data-i18n-en="Before you leave, a WeChat service notification: departure time, meeting place, and roughly how long the trip takes.">出发前，微信推来一条服务通知：几点出发、去哪儿集合、全程大约多久。</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 两种开团方式 ============ -->
+    <section class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="两种开团方式" data-i18n-en="TWO WAYS TO PLAN">两种开团方式</span>
+          <h2 class="section-title"
+              data-i18n-zh="一起商量，还是你一个人定了都行" data-i18n-en="Plan it together, or just set it yourself">一起商量，还是你一个人定了都行</h2>
+          <p class="section-sub"
+             data-i18n-zh="加入、填出发地、收提醒，两种方式完全一样；区别只在谁能改行程。"
+             data-i18n-en="Joining, adding an origin, and getting reminders are identical. The only difference is who can change the plan.">加入、填出发地、收提醒，两种方式完全一样；区别只在谁能改行程。</p>
+        </div>
+
+        <div class="cw-modes">
+          <div class="cw-mode">
+            <div class="cw-mode-head">
+              <span class="cw-mode-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </span>
+              <h3 data-i18n-zh="共创" data-i18n-en="Co-create">共创</h3>
+            </div>
+            <span class="tag" data-i18n-zh="适合朋友出游、群里一起攒行程" data-i18n-en="For friends building a trip together">适合朋友出游、群里一起攒行程</span>
+            <p data-i18n-zh="谁都能往行程里加地点，每个人可以改自己的出发地和信息。想去哪儿，群里说着说着就齐了。"
+               data-i18n-en="Anyone can add a stop; everyone can edit their own origin and details. The plan comes together as the group talks.">谁都能往行程里加地点，每个人可以改自己的出发地和信息。想去哪儿，群里说着说着就齐了。</p>
+            <ul class="cw-list">
+              <li data-i18n-zh="所有人都能加地点" data-i18n-en="Everyone can add stops">所有人都能加地点</li>
+              <li data-i18n-zh="每个人改自己的信息" data-i18n-en="Each person edits their own details">每个人改自己的信息</li>
+              <li data-i18n-zh="发起人负责定集合时间" data-i18n-en="The organiser sets the meeting time">发起人负责定集合时间</li>
+            </ul>
+          </div>
+
+          <div class="cw-mode">
+            <div class="cw-mode-head">
+              <span class="cw-mode-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+              </span>
+              <h3 data-i18n-zh="参与" data-i18n-en="Sign-up">参与</h3>
+            </div>
+            <span class="tag" data-i18n-zh="适合活动、团建、有人统一安排" data-i18n-en="For events and outings with one organiser">适合活动、团建、有人统一安排</span>
+            <p data-i18n-zh="发起人一个人安排地点和顺序，其他人只填自己的出发地。少一点来回，多一点确定。"
+               data-i18n-en="The organiser arranges the stops and their order; everyone else just adds an origin. Less back-and-forth, more certainty.">发起人一个人安排地点和顺序，其他人只填自己的出发地。少一点来回，多一点确定。</p>
+            <ul class="cw-list">
+              <li data-i18n-zh="只有发起人能改行程" data-i18n-en="Only the organiser edits the plan">只有发起人能改行程</li>
+              <li data-i18n-zh="其他人只填出发地" data-i18n-en="Everyone else just adds an origin">其他人只填出发地</li>
+              <li data-i18n-zh="加入和提醒照旧" data-i18n-en="Joining and reminders work the same">加入和提醒照旧</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 分享与隐私 ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="分享与隐私" data-i18n-en="SHARING &amp; PRIVACY">分享与隐私</span>
+          <h2 class="section-title"
+              data-i18n-zh="发到群里，也只公开该公开的" data-i18n-en="Post it to the group — share only what should be shared">发到群里，也只公开该公开的</h2>
+          <p class="section-sub"
+             data-i18n-zh="分享卡片是行程的门票，不是所有人信息的入口。"
+             data-i18n-en="The share card is a ticket to the trip, not a doorway into everyone's details.">分享卡片是行程的门票，不是所有人信息的入口。</p>
+        </div>
+
+        <div class="cw-share">
+          <figure class="cw-share-fig">
+            <div class="cw-share-card">
+              <img src="../../assets/img/crewup-share.jpg" width="750" height="413" loading="lazy" alt="">
+              <div class="cw-share-veil">
+                <strong data-i18n-zh="十一西山踏青" data-i18n-en="Xishan autumn walk">十一西山踏青</strong>
+                <span data-i18n-zh="10月5日 · 09:30 西山森林公园集合" data-i18n-en="Oct 5 · meet at Xishan Forest Park, 09:30">10月5日 · 09:30 西山森林公园集合</span>
+              </div>
+            </div>
+            <figcaption data-i18n-zh="一张卡片丢进群：还没加入的人，也能先看清集合点、地点和人数。"
+                        data-i18n-en="One card in the group: even before joining, people can see the meeting point, the stops, and the headcount.">一张卡片丢进群：还没加入的人，也能先看清集合点、地点和人数。</figcaption>
+          </figure>
+
+          <div class="cw-priv">
+            <div class="cw-priv-item">
+              <span class="cw-priv-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+              </span>
+              <div>
+                <h3 data-i18n-zh="出发地默认是你自己的" data-i18n-en="Your origin is yours by default">出发地默认是你自己的</h3>
+                <p data-i18n-zh="别人只看到你填没填、几点出门，看不到你从哪儿出发、坐什么车。想公开再公开。"
+                   data-i18n-en="Others see that you've filled it in and when you leave — not where you're coming from or how. Make it public only if you want to.">别人只看到你填没填、几点出门，看不到你从哪儿出发、坐什么车。想公开再公开。</p>
+              </div>
+            </div>
+            <div class="cw-priv-item">
+              <span class="cw-priv-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20"/><path d="M6.7 6.7C3.6 8.6 2 12 2 12s3.5 7 10 7c2.2 0 4.1-.7 5.6-1.7"/><path d="M10.6 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 3.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+              </span>
+              <div>
+                <h3 data-i18n-zh="没加入的人，看不到成员信息" data-i18n-en="Non-members don't see member details">没加入的人，看不到成员信息</h3>
+                <p data-i18n-zh="点开卡片可以先看行程再决定；加入之后，也只看得到大家愿意公开的那部分。"
+                   data-i18n-en="Open the card, see the trip, then decide. After joining, you still only see what each person chose to share.">点开卡片可以先看行程再决定；加入之后，也只看得到大家愿意公开的那部分。</p>
+              </div>
+            </div>
+            <div class="cw-priv-item">
+              <span class="cw-priv-ico">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12"/><path d="M6 21h12"/><path d="M8 3c0 7 8 11 8 18"/><path d="M16 3c0 7-8 11-8 18"/></svg>
+              </span>
+              <div>
+                <h3 data-i18n-zh="行程结束 24 小时后收起" data-i18n-en="Trips tuck themselves away after 24 hours">行程结束 24 小时后收起</h3>
+                <p data-i18n-zh="过期行程自动归档，不会一直占着列表，也不会有人随时翻到老地址。"
+                   data-i18n-en="Finished trips are filed away automatically — out of your list, and no longer pointing anyone back to an old address.">过期行程自动归档，不会一直占着列表，也不会有人随时翻到老地址。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 开始 ============ -->
+    <section class="section section-alt" id="start">
+      <div class="container">
+        <div class="cw-start">
+          <div>
+            <span class="kicker" data-i18n-zh="开始出发" data-i18n-en="GET GOING">开始出发</span>
+            <h2 data-i18n-zh="不用下载，扫一下就出发" data-i18n-en="No download — one scan and you're off">不用下载，扫一下就出发</h2>
+            <p class="cw-start-sub"
+               data-i18n-zh="打开微信扫一扫，进「集合出发吧」。建个行程丢进群里，第一次用也不用另外注册账号。"
+               data-i18n-en="Scan the mini program code in WeChat to open CrewUp. Start a trip, drop it in the group — no extra account needed the first time, either.">打开微信扫一扫，进「集合出发吧」。建个行程丢进群里，第一次用也不用另外注册账号。</p>
+            <ul class="cw-start-list">
+              <li><span class="n">1</span><span data-i18n-zh="扫小程序码，直接进小程序" data-i18n-en="Scan the code — the mini program opens right up">扫小程序码，直接进小程序</span></li>
+              <li><span class="n">2</span><span data-i18n-zh="建行程，分享到微信群" data-i18n-en="Start a trip and share it to your WeChat group">建行程，分享到微信群</span></li>
+              <li><span class="n">3</span><span data-i18n-zh="大家填完出发地，时间表就出来了" data-i18n-en="Once everyone adds an origin, the timetable appears">大家填完出发地，时间表就出来了</span></li>
+            </ul>
+            <div class="facts">
+              <span class="fact" data-i18n-zh="微信小程序" data-i18n-en="WeChat mini program">微信小程序</span>
+              <span class="fact" data-i18n-zh="不用下载" data-i18n-en="No download">不用下载</span>
+              <span class="fact" data-i18n-zh="最多 30 人" data-i18n-en="Up to 30 people">最多 30 人</span>
+            </div>
+          </div>
+
+          <div class="cw-scan">
+            <div class="cw-scan-app">
+              <img src="../../assets/img/crewup.png" alt="">
+              <strong>
+                <span data-i18n-zh="集合出发吧" data-i18n-en="CrewUp">集合出发吧</span>
+                <small data-i18n-zh="微信小程序" data-i18n-en="WeChat mini program">微信小程序</small>
+              </strong>
+            </div>
+            <div class="cw-qr">
+              <img id="cw-qr-img" src="../../assets/img/crewup-qrcode.jpg" alt="集合出发吧小程序码，微信扫码打开" width="720" height="720" hidden>
+              <div class="cw-qr-fallback" id="cw-qr-fallback">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3"/><path d="M16 4h3a1 1 0 0 1 1 1v3"/><path d="M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M4 12h16"/></svg>
+                <strong data-i18n-zh="微信扫一扫" data-i18n-en="Scan in WeChat">微信扫一扫</strong>
+                <span data-i18n-zh="打开「集合出发吧」" data-i18n-en="Open CrewUp">打开「集合出发吧」</span>
+              </div>
+            </div>
+            <p class="cw-scan-tip" data-i18n-zh="微信扫一扫" data-i18n-en="Scan in WeChat">微信扫一扫</p>
+            <p class="cw-scan-sub" data-i18n-zh="扫码或长按识别 · 不用下载 App" data-i18n-en="Scan or long-press · no app to install">扫码或长按识别 · 不用下载 App</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <span class="kicker" data-i18n-zh="常见问题" data-i18n-en="FAQ">常见问题</span>
+          <h2 class="section-title"
+              data-i18n-zh="你可能想问" data-i18n-en="You might be wondering">你可能想问</h2>
+        </div>
+
+        <div class="faq">
+          <details>
+            <summary data-i18n-zh="要下载 App 吗？" data-i18n-en="Do I need to install an app?">要下载 App 吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不用。它是微信小程序，扫小程序码就能打开，用完退出，不占手机桌面。"
+               data-i18n-en="No. It's a WeChat mini program — scan the code to open it. Close it when you're done; nothing gets added to your home screen.">不用。它是微信小程序，扫小程序码就能打开，用完退出，不占手机桌面。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="还要另外注册账号吗？" data-i18n-en="Do I need to create an account?">还要另外注册账号吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不用另外注册。用微信昵称加入行程就行，打开就是能用的状态。"
+               data-i18n-en="No extra account. Join with a WeChat nickname and you're ready to go.">不用另外注册。用微信昵称加入行程就行，打开就是能用的状态。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="别人能看到我从哪儿出发吗？" data-i18n-en="Can other people see where I'm starting from?">别人能看到我从哪儿出发吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="默认看不到。大家只会看到你填了没有、几点出门；出发地和交通信息要不要公开，由你自己决定。"
+               data-i18n-en="Not by default. Others only see whether you've filled it in and when you leave. Whether your origin and transport details are public is your choice.">默认看不到。大家只会看到你填了没有、几点出门；出发地和交通信息要不要公开，由你自己决定。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="一个行程能有多少人？" data-i18n-en="How many people can one trip hold?">一个行程能有多少人？</summary>
+            <p class="faq-a"
+               data-i18n-zh="最多 30 人。两个人的周末和一群人的团建，都放得下。"
+               data-i18n-en="Up to 30. Enough for a weekend for two or a team outing for many.">最多 30 人。两个人的周末和一群人的团建，都放得下。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="共创和参与有什么区别？" data-i18n-en="What's the difference between Co-create and Sign-up?">共创和参与有什么区别？</summary>
+            <p class="faq-a"
+               data-i18n-zh="共创模式下，所有成员都能加地点、改自己的信息；参与模式下，只有发起人安排行程。加入、填出发地、收提醒，两种模式都一样。"
+               data-i18n-en="In Co-create, every member can add stops and edit their own details. In Sign-up, only the organiser arranges the plan. Joining, adding an origin, and reminders are the same in both.">共创模式下，所有成员都能加地点、改自己的信息；参与模式下，只有发起人安排行程。加入、填出发地、收提醒，两种模式都一样。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="出发提醒是怎么来的？" data-i18n-en="How does the departure reminder work?">出发提醒是怎么来的？</summary>
+            <p class="faq-a"
+               data-i18n-zh="加入时点一下允许订阅，到了你自己该出门的时间，微信会推一条服务通知：几点出发、去哪儿集合、全程大约多久。"
+               data-i18n-en="Tap to allow the subscription when you join. At your own departure time, a WeChat service notification arrives: when to leave, where to meet, and roughly how long the trip takes.">加入时点一下允许订阅，到了你自己该出门的时间，微信会推一条服务通知：几点出发、去哪儿集合、全程大约多久。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="组织者还要自己算路线吗？" data-i18n-en="Does the organiser still have to work out the route?">组织者还要自己算路线吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="不用。任何一个人改了出发地或行程，集合点、地点顺序和时间表都会自动重算。"
+               data-i18n-en="No. Whenever someone changes an origin or the plan, the meeting point, stop order, and timetable are recalculated automatically.">不用。任何一个人改了出发地或行程，集合点、地点顺序和时间表都会自动重算。</p>
+          </details>
+          <details>
+            <summary data-i18n-zh="行程结束之后还在吗？" data-i18n-en="Is the trip still there after it's over?">行程结束之后还在吗？</summary>
+            <p class="faq-a"
+               data-i18n-zh="结束后保留 24 小时，之后自动收起，不会一直占着列表。"
+               data-i18n-en="It stays for 24 hours after the trip ends, then files itself away so your list stays clear.">结束后保留 24 小时，之后自动收起，不会一直占着列表。</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="section" style="padding-top: 0;">
+      <div class="container">
+        <div class="cta-band">
+          <h2 data-i18n-zh="下一次出门，别再在群里对齐半小时" data-i18n-en="Next time, skip the half hour of group-chat logistics">下一次出门，别再在群里对齐半小时</h2>
+          <p data-i18n-zh="把行程丢进群，出发地收上来，剩下的交给它。"
+             data-i18n-en="Drop the trip in the group, collect the origins, and let it do the rest.">把行程丢进群，出发地收上来，剩下的交给它。</p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="#start">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3"/><path d="M16 4h3a1 1 0 0 1 1 1v3"/><path d="M20 16v3a1 1 0 0 1-1 1h-3"/><path d="M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M4 12h16"/></svg>
+              <span data-i18n-zh="扫码开团" data-i18n-en="Scan to start">扫码开团</span>
+            </a>
+            <a class="btn btn-ghost" href="#gallery"
+               data-i18n-zh="先看看界面" data-i18n-en="See the screens first">先看看界面</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span data-i18n-zh="© 2026 集合出发吧 · 微信小程序" data-i18n-en="© 2026 CrewUp · A WeChat mini program">© 2026 集合出发吧 · 微信小程序</span>
+      <a href="../../" data-i18n-zh="所有工具" data-i18n-en="All tools">所有工具</a>
+    </div>
+  </footer>
+
+  <script src="../../assets/js/i18n.js"></script>
+  <script src="../../assets/js/hero-gl.js"></script>
+  <script>
+    /* 小程序码图片放好就显示；还没放时显示扫码占位卡，不出现破图。 */
+    (function () {
+      var img = document.getElementById('cw-qr-img');
+      var fallback = document.getElementById('cw-qr-fallback');
+      if (!img || !fallback) return;
+      function show() { img.hidden = false; fallback.hidden = true; }
+      function hide() { img.hidden = true; fallback.hidden = false; }
+      img.addEventListener('load', show);
+      img.addEventListener('error', hide);
+      if (img.complete) {
+        if (img.naturalWidth > 0) show(); else hide();
+      }
+    })();
+  </script>
+</body>
+</html>

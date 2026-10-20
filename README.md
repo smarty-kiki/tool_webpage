@@ -29,8 +29,10 @@ tool_webpage/
 │   │   │   └── index.html            # laya-server 介绍页（本机 Laya 推理服务，App / 命令行，下载引导）
 │   │   ├── scheduler/
 │   │   │   └── index.html            # Scheduler 介绍页（macOS 菜单栏日程助手，下载引导）
-│   │   └── earshot/
-│   │       └── index.html            # 耳录 EarShot 介绍页（macOS 会议待办助手，下载引导）
+│   │   ├── earshot/
+│   │   │   └── index.html            # 耳录 EarShot 介绍页（macOS 会议待办助手，下载引导）
+│   │   └── crewup/
+│   │       └── index.html            # 集合出发吧介绍页（微信小程序，扫小程序码使用，无下载）
 │   └── assets/
 │       ├── css/style.css             # 全站共享设计系统（浅色暖调；产品 mock 保持深色）
 │       ├── js/i18n.js                # 中英双语切换
@@ -45,7 +47,7 @@ tool_webpage/
     └── after_push.sh                 # 部署脚本：软链 Caddyfile 并 reload
 ```
 
-按产品类型区分 CTA：macOS 应用与跨平台应用的下载按钮统一指向各项目 GitHub 仓库的 Releases 页面（不带版本号，发新版本无需改页）；网页产品（无源码引导）直接跳转线上地址使用；Agent Skill 引导把 skill 装进自己的智能体（主 CTA 跳产品站，页面内附安装口令，无下载、无源码引导）；StaffDeck 页提供 macOS / Windows / Linux 四张平台卡片（企业级升级版，基于 OpenBMB 的 StaffDeck），同样统一落到本项目 Releases 页面。
+按产品类型区分 CTA：macOS 应用与跨平台应用的下载按钮统一指向各项目 GitHub 仓库的 Releases 页面（不带版本号，发新版本无需改页）；网页产品（无源码引导）直接跳转线上地址使用；Agent Skill 引导把 skill 装进自己的智能体（主 CTA 跳产品站，页面内附安装口令，无下载、无源码引导）；微信小程序（集合出发吧）不放下载按钮，CTA 指向页内小程序码，扫码直接打开；StaffDeck 页提供 macOS / Windows / Linux 四张平台卡片（企业级升级版，基于 OpenBMB 的 StaffDeck），同样统一落到本项目 Releases 页面。
 
 ## 双语机制
 
